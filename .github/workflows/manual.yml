@@ -1,0 +1,23 @@
+name: WebUI Builder
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release version'
+        required: true
+
+jobs:
+  build:
+    # Runner name
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+      # Sets up node
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12
+      - run: npm ci
+      - run: gulp package --lang en

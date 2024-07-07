@@ -39,7 +39,7 @@ function closeModal(response) {
         var closefn = currentmodal.closefn;
         //console.log("Deletetion of modal " +  currentmodal.name + " with ID "  + currentmodal.id);
         listmodal.pop();
-        delete currentmodal;
+        currentmodal = null;
         currentmodal = getactiveModal();
         //if (currentmodal != null)console.log("New active modal is  " +  currentmodal.name + " with ID "  + currentmodal.id);
         //else console.log("No active modal");

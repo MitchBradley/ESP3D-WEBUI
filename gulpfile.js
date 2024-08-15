@@ -1,19 +1,18 @@
-var gulp = require('gulp'),
-    jshint = require('gulp-jshint'),
-    gulpif = require('gulp-if'),
-    concat = require('gulp-concat'),
-    uglify = require('gulp-uglify'),
-    cleanCSS = require('gulp-clean-css'),
-    removeCode = require('gulp-remove-code'),
-    merge = require('merge-stream'),
-    del = require('del'),
-    zip = require('gulp-zip'),
-    gzip = require('gulp-gzip'),
-    htmlmin = require('gulp-htmlmin'),
-    replace = require('gulp-replace'),
-    fs = require('fs'),
-    smoosher = require('gulp-smoosher');
-    size = require('gulp-filesize');
+import gulp from 'gulp';
+import jshint from 'gulp-jshint';
+import concat from 'gulp-concat';
+import uglify from 'gulp-uglify';
+import cleanCSS from 'gulp-clean-css';
+import removeCode from 'gulp-remove-code';
+import merge from 'merge-stream';
+import del from 'del';
+import gzip from 'gulp-gzip';
+import htmlmin from 'gulp-htmlmin';
+import replace from 'gulp-replace';
+import fs from 'fs';
+import smoosher from 'gulp-smoosher';
+import size from 'gulp-size';
+import childProcess from 'child_process';
 
 var fl_lang = false;
 var en_lang = false;
@@ -31,20 +30,21 @@ var hu_lang = false;
 var tr_lang = false;
 
 function clean() {
+    del(['./index.html.gz']);
     return del(['dist']);
-    
 }
 
-function clean2() {
+function cleanupAfterBuild() {
     return del(['dist/js', 'dist/css']);
 }
+
 function lint() {
     return gulp.src('www/js/**/app.js')
         .pipe(jshint())
         .pipe(jshint.reporter('default'));
 }
 
-function Copytest() {
+function copyTest() {
     return merge(
         gulp.src(['www/index.html'])
         .pipe(removeCode({production: false}))
@@ -55,7 +55,7 @@ function Copytest() {
     )
 }
 
-function Copy() {
+function copy() {
     return merge(
         gulp.src(['www/index.html'])
         .pipe(removeCode({production: true}))
@@ -68,7 +68,7 @@ function Copy() {
 
 function concatApptest() {
     return merge(
-        gulp.src([ 'www/js/**/*.js'])
+        gulp.src(['www/js/**/*.js'])
             .pipe(concat('app.js'))
             .pipe(removeCode({production: false}))
             .pipe(removeCode({cleanheader: true}))
@@ -94,7 +94,7 @@ function concatApp() {
     )
 }
 
-var execSync = require('child_process').execSync;
+var execSync = childProcess.execSync;
 
 function replaceVersion() {
     return gulp.src('dist/index.html')
@@ -125,24 +125,18 @@ function clearlang() {
         opt = thisOpt.replace(/^\-+/, '');
 
         if (opt === thisOpt) {
-
           // argument value
           if (curOpt) arg[curOpt] = opt;
           curOpt = null;
-
         }
         else {
-
           // argument name
           curOpt = opt;
           arg[curOpt] = true;
 
         }
-
       }
-
       return arg;
-
     })(process.argv);
     if ((arg.lang == 'fluidnc') ) {
         fl_lang = true;
@@ -274,22 +268,23 @@ function clearlang() {
     if(zh_cn_lang){
         console.log("zh_CN");
     }
+
     return gulp.src('dist/js/app.js')
-               .pipe(removeCode({fl_lang_disabled: !fl_lang}))
-               .pipe(removeCode({de_lang_disabled: !de_lang}))
-               .pipe(removeCode({en_lang_disabled: !en_lang}))
-        .pipe(removeCode({es_lang_disabled: !es_lang}))
-        .pipe(removeCode({fr_lang_disabled: !fr_lang}))
-        .pipe(removeCode({it_lang_disabled: !it_lang}))
-        .pipe(removeCode({ja_lang_disabled: !ja_lang}))
-        .pipe(removeCode({hu_lang_disabled: !hu_lang}))
-        .pipe(removeCode({pl_lang_disabled: !pl_lang}))
-        .pipe(removeCode({ptbr_lang_disabled: !ptbr_lang}))
-        .pipe(removeCode({ru_lang_disabled: !ru_lang}))
-        .pipe(removeCode({tr_lang_disabled: !tr_lang}))
-        .pipe(removeCode({uk_lang_disabled: !uk_lang}))
-        .pipe(removeCode({zh_cn_lang_disabled: !zh_cn_lang}))
-        .pipe(gulp.dest('./dist/js/'))
+            .pipe(removeCode({fl_lang_disabled: !fl_lang}))
+            .pipe(removeCode({de_lang_disabled: !de_lang}))
+            .pipe(removeCode({en_lang_disabled: !en_lang}))
+            .pipe(removeCode({es_lang_disabled: !es_lang}))
+            .pipe(removeCode({fr_lang_disabled: !fr_lang}))
+            .pipe(removeCode({it_lang_disabled: !it_lang}))
+            .pipe(removeCode({ja_lang_disabled: !ja_lang}))
+            .pipe(removeCode({hu_lang_disabled: !hu_lang}))
+            .pipe(removeCode({pl_lang_disabled: !pl_lang}))
+            .pipe(removeCode({ptbr_lang_disabled: !ptbr_lang}))
+            .pipe(removeCode({ru_lang_disabled: !ru_lang}))
+            .pipe(removeCode({tr_lang_disabled: !tr_lang}))
+            .pipe(removeCode({uk_lang_disabled: !uk_lang}))
+            .pipe(removeCode({zh_cn_lang_disabled: !zh_cn_lang}))
+            .pipe(gulp.dest('./dist/js/'))
 }
 
 function minifyApp() {
@@ -336,25 +331,21 @@ function compress() {
 
 gulp.task(clean);
 gulp.task(lint);
-gulp.task(Copy);
-gulp.task(Copytest);
+gulp.task(copy);
+gulp.task(copyTest);
 gulp.task(replaceVersion)
 gulp.task(replaceSVG);
 gulp.task(concatApp);
 gulp.task(concatApptest);
 gulp.task(minifyApp);
 gulp.task(smoosh);
-gulp.task(clean2);
+gulp.task(cleanupAfterBuild);
 gulp.task(clearlang)
 
-var defaultSeries = gulp.series(clean,  lint, Copy, concatApp, minifyApp, includehtml, includehtml, smoosh);
-//var packageSeries = gulp.series(clean,  lint, Copy, concatApp, minifyApp, smoosh, compress);
-var packageSeries = gulp.series(clean,  lint, Copy, concatApp, includehtml, includehtml, replaceVersion, replaceSVG, clearlang, minifyApp, smoosh, compress, clean2);
-var package2Series = gulp.series(clean,  lint, Copy, concatApp, includehtml, includehtml, replaceVersion, replaceSVG, smoosh);
-var package2testSeries = gulp.series(clean,  lint, Copytest, concatApptest, includehtml, includehtml, replaceSVG, smoosh);
+var defaultSeries = gulp.series(clean, lint, copy, concatApp, minifyApp, includehtml, includehtml, smoosh);
+var packageSeries = gulp.series(clean, lint, copy, concatApp, includehtml, includehtml, replaceVersion, replaceSVG, clearlang, minifyApp, smoosh, compress);
+// var packageSeries = gulp.series(clean, lint, Copy, concatApp, includehtml, includehtml, replaceVersion, replaceSVG, clearlang, minifyApp, smoosh, compress, cleanupAfterBuild);
 
 gulp.task('default', defaultSeries);
 gulp.task('package', packageSeries);
-gulp.task('package2', package2Series);
-gulp.task('package2test', package2testSeries);
 

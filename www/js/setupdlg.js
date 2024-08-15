@@ -137,15 +137,14 @@ function enablestep2() {
 
     content += item("What access point ESP need to be connected to:", EP_STA_SSID);
     content += translate_text_item("You can use scan button, to list available access points.") + "<br>";
-    content += spacer();
 
     content += item("Password to join access point:", EP_STA_PASSWORD);
+    content += spacer();
     content += endDiv();
 
     content += startDiv("setup_AP");
 
     content += item("What is ESP access point SSID:", EP_AP_SSID);
-    content += spacer();
 
     content += item("Password for access point:", EP_AP_PASSWORD);
 

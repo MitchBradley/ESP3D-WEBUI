@@ -533,8 +533,6 @@ function closePreferencesDialog() {
             if (id('enable_lock_UI').checked != (preferenceslist[0].enable_lock_UI === 'true')) modified = true;
             //Monitor connection
             if (id('enable_ping').checked != (preferenceslist[0].enable_ping === 'true')) modified = true;
-            //probe
-            if (id('enable_probe_controls').checked != (preferenceslist[0].enable_probe === 'true')) modified = true;
             //control panel
             if (id('show_control_panel').checked != (preferenceslist[0].enable_control_panel === 'true')) modified = true;
             //grbl panel

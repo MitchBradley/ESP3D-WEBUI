@@ -1,5 +1,5 @@
 {
-  "name": "ESP3D-WebUI",
+  "name": "esp3d-webui",
   "description": "Web UI for ESP3D",
   "devDependencies": {
     "del": "6.0.0",
@@ -22,7 +22,10 @@
     "merge-stream": "latest",
     "uglify-js": "^3.14.2"
   },
-  "repository": "https://github.com/luc-github/ESP3D-WEBUI",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/luc-github/ESP3D-WEBUI.git"
+  },
   "author": "Luc LEBOSSE",
   "license": "(ISC OR GPL-3.0)",
   "type": "module",
@@ -30,5 +33,17 @@
     "global": "latest",
     "gulp": "^4.0.2",
     "gulp-cli": "^3.0.0"
-  }
+  },
+  "version": "1.0.0",
+  "main": "gulpfile-.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/luc-github/ESP3D-WEBUI/issues"
+  },
+  "homepage": "https://github.com/luc-github/ESP3D-WEBUI#readme"
 }

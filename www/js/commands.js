@@ -105,6 +105,7 @@ function SendCustomCommand() {
     cmd = encodeURI(cmd);
     //because # is not encoded
     cmd = cmd.replace("#", "%23");
+    cmd = cmd.replace("+", "%2B");
     SendGetHttp(url + cmd, SendCustomCommandSuccess, SendCustomCommandFailed);
 }
 

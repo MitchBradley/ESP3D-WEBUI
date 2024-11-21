@@ -65,8 +65,7 @@ function getFWdata(response) {
             if (sublist.length>3) {
                 websocket_ip = sublist[3].trim();
             } else {
-                console.log("No IP for websocket, use default");
-                 websocket_ip =  document.location.hostname;
+                websocket_ip =  document.location.hostname;
             }
         }
     }

@@ -104,8 +104,8 @@ function SendCustomCommand() {
     Monitor_output_Update(cmd + "\n");
     cmd = encodeURI(cmd);
     //because # is not encoded
-    cmd = cmd.replace("#", "%23");
-    cmd = cmd.replace("+", "%2B");
+    cmd = cmd.replaceAll("#", "%23");
+    cmd = cmd.replaceAll("+", "%2B");
     SendGetHttp(url + cmd, SendCustomCommandSuccess, SendCustomCommandFailed);
 }
 

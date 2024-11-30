@@ -453,7 +453,7 @@ const setupTablet = () => {
 const filterFiles = (files) => files;
 
 const refreshFiles = (event) => {
-//    files_refreshFiles(files_currentPath)
+    files_refreshFiles(files_currentPath)
 }
 
 const internalUploadFile = () => {

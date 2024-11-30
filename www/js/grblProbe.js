@@ -1,21 +1,20 @@
 let is_probing = false;
-let probe_fail_reason = '';
 
 const finalize_probing = (status) => {
-    // No need for this when using the FluidNC-specific G38.6 probe command.
-    // SendPrinterCommand("G90", true, null, null, 90, 1);
+    if (status) {
+       const cmd = "$J=G90 G21 F1000 Z" + (parseFloat(getValue('probetouchplatethickness')) + parseFloat(getValue('proberetract'))); 
+       SendPrinterCommand(cmd, true, null, null, 90, 1);
+    } else {
+        alertdlg(translate_text_item("Error"), translate_text_item(msg));
+        beep(70, 261);
+    }
+
     is_probing = false;
     setClickability('probingbtn', true);
     setClickability('probingtext', false);
     setClickability('sd_pause_btn', false);
     setClickability('sd_resume_btn', false);
     setClickability('sd_reset_btn', false);
-}
-
-const probe_failed_notification = (msg) => {
-    finalize_probing('failed');
-    alertdlg(translate_text_item("Error"), translate_text_item(msg));
-    beep(70, 261);
 }
 
 const grbl_set_probe_detected = (state) => {
@@ -85,7 +84,6 @@ const StartProbeProcess = () => {
     cmd += parseFloat(getValue('probemaxtravel')) + ' F' + parseInt(getValue('probefeedrate')) + ' P' + getValue('probetouchplatethickness');
     console.log(cmd);
     is_probing = true;
-    probe_fail_reason = '';
     let restoreReport = false;
     if (reportType == 'none') {
         tryAutoReport(); // will fall back to polled if autoreport fails

@@ -84,7 +84,7 @@ var langtrans = {
 "Network":"Network",
 "No SD card detected":"No SD card detected",
 "No":"No",
-"Occupation:":"Occupation:",
+"Usage:":"Occupation:",
 "Ok":"Ok",
 "Options":"Options",
 "Out of range":"Out of range",

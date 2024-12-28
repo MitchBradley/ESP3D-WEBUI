@@ -83,7 +83,7 @@ var ukrtrans = {
 "Network": "Мережа",
 "No SD card detected": "SD-карта не виявлена",
 "No": "Ні",
-"Occupation:": "Захоплення:",
+"Usage:": "Захоплення:",
 "Ok": "ОК",
 "Options": "Опції",
 "Out of range": "Поза діапазону",

@@ -82,7 +82,7 @@ var frenchtrans = {
 "Network":"R&eacute;seau",
 "No SD card detected":"Pas de SD carte d&eacute;tect&eacute;e",
 "No":"Non",
-"Occupation:":"Occupation",
+"Usage:":"Occupation",
 "Ok":"Ok",
 "Options":"Options",
 "Out of range":"Invalide",

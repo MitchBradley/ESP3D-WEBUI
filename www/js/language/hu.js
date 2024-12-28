@@ -87,7 +87,7 @@ var hungariantrans = {
 "Network":"Hálózat",
 "No SD card detected":"SD Kártya felismerhetetlen",
 "No":"Nem",
-"Occupation:":"Elfoglalt",
+"Usage:":"Elfoglalt",
 "Ok":"Ok",
 "Options":"Opciók",
 "Out of range":"Hatótávolságon kívül",

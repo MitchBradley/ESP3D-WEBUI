@@ -86,7 +86,7 @@ var turkishtrans = {
 "Network":"A&gbreve;",
 "No SD card detected":"SD kart bulunamad&inodot;",
 "No":"Hay&inodot;r",
-"Occupation:":"Kullan&inodot;m:",
+"Usage:":"Kullan&inodot;m:",
 "Ok":"Tamam",
 "Options":"Se&ccedil;enekler",
 "Out of range":"Aral&inodot;k/Menzil d&inodot;&scedil;&inodot;",

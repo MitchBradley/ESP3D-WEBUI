@@ -83,7 +83,7 @@ var italiantrans = {
 "Network":"Rete",
 "No SD card detected":"Nessuna Scheda SD rilevata",
 "No":"No",
-"Occupation:":"Occupazione",
+"Usage:":"Occupazione",
 "Ok":"Ok",
 "Options":"Opzioni",
 "Out of range":"Fuori range",

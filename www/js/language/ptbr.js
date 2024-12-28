@@ -92,7 +92,7 @@ var ptbrtrans = {
 "Network":"Rede",
 "No SD card detected":"SD card n&atilde;o detectado",
 "No":"N&atilde;o",
-"Occupation:":"Ocupado:",
+"Usage:":"Ocupado:",
 "Ok":"Ok",
 "Options":"Op&ccedil;&otilde;es",
 "Out of range":"Fora de alcance",

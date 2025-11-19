@@ -72,7 +72,7 @@ function processMacroGetSuccess(response) {
 }
 
 function processMacroGetFailed(errorcode, response) {
-    console.log("Error " + errorcode + " : " + response);
+    // console.log("Error " + errorcode + " : " + response);
     Macro_build_list("");
 }
 
@@ -201,7 +201,7 @@ function SendJogcommand(cmd, feedrate) {
         cmd = cmd.replace("Z", letter);
     }
     command = "$J=G91 G21 F" + feedratevalue + " " + cmd;
-    console.log(command);
+    // console.log(command);
     SendPrinterCommand(command, true, get_Position);
 }
 

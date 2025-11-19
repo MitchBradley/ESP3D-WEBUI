@@ -97,7 +97,7 @@ function build_HTML_config_list() {
             content += "</td><td>";
             content += "<div class='input-group'>";
             content += "<span class='input-group-addon hide_it' ></span>";
-            content += "<input id='config_" + prefix + i + "' type='text' class='form-control' style='width:";
+            content += "<input autocomplete='off' id='config_" + prefix + i + "' type='text' class='form-control' style='width:";
             content += "auto";
             content += "'  value='" + item.defaultvalue + "' onkeyup='config_checkchange(" + i + "," + is_override_config + ")' />";
             content += "<span id='icon_config_" + prefix + i + "'class='form-control-feedback ico_feedback' ></span>";

@@ -125,7 +125,7 @@ function build_control_from_index(i, extra_set_function) {
             } else {
                 //text
                 input_type = defval(i).startsWith("******") ? "password" : "text";
-                content += "<form><input id='setting_" + i + "_" + j + "' type='" + input_type + "' class='form-control input-min'  value='" + defval(i) + "' onkeyup='setting_checkchange(" + i + "," + j + ")' ></form>";
+                content += "<form><input autocomplete='off' id='setting_" + i + "_" + j + "' type='" + input_type + "' class='form-control input-min'  value='" + defval(i) + "' onkeyup='setting_checkchange(" + i + "," + j + ")' ></form>";
             }
             content += "<span id='icon_setting_" + i + "_" + j + "'class='form-control-feedback ico_feedback'></span>";
             content += "<span class='input-group-addon hide_it' ></span>";

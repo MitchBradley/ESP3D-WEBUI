@@ -136,7 +136,7 @@ function processFallbackPreferencesGetSuccess(response) {
 }
 
 function processFallbackPreferencesGetFailed(errorcode, response) {
-    console.log("Error " + errorcode + " : " + response);
+    // console.log("Error " + errorcode + " : " + response);
     Preferences_build_list(defaultpreferenceslist);
 }
 
@@ -151,7 +151,7 @@ function processPreferencesGetSuccess(response) {
 }
 
 function processPreferencesGetFailed(errorcode, response) {
-    console.log("Error " + errorcode + " : " + response);
+    // console.log("Error " + errorcode + " : " + response);
     console.log("Trying fallback to preferences.json");
     getFallbackPreferences();
 }

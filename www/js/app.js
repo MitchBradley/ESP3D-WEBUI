@@ -28,15 +28,18 @@ var EP_DIRECT_SD_CHECK = 853;
 var SETTINGS_AP_MODE = 1;
 var SETTINGS_STA_MODE = 2;
 var SETTINGS_FALLBACK_MODE = 3;
-var interval_ping = -1;
-var last_ping = 0;
+var ws_activity_interval = -1;
+var last_ws_activity = 0;
 var enable_ping = true;
 var esp_error_message ="";
 var esp_error_code = 0;
 
+function set_page_id(id) {
+    page_id = id;
+    // console.log("connection id = " + page_id);
+}
 function Init_events(e) {
-    page_id = e.data;
-    console.log("connection id = " + page_id);
+    set_page_id(e.data);
 }
 
 function ActiveID_events(e) {
@@ -80,7 +83,7 @@ function browser_is(bname) {
 window.onload = function() {
     //to check if javascript is disabled like in anroid preview
     displayNone('loadingmsg');
-    console.log("Connect to board");
+    // console.log("Connect to board");
     connectdlg();
     //ugly hack for IE
     console.log(navigator.userAgent);
@@ -110,7 +113,7 @@ function startSocket() {
         console.log("Connected");
     };
     ws_source.onclose = function(e) {
-        console.log("Disconnected");
+        console.log(" Disconnected");
         //seems sometimes it disconnect so wait 3s and reconnect
         //if it is not a log off
         if (!log_off) setTimeout(startSocket, 3000);
@@ -123,41 +126,42 @@ function startSocket() {
         var msg = "";
         //bin
         if (e.data instanceof ArrayBuffer) {
+            // Array of response lines
             var bytes = new Uint8Array(e.data);
             for (var i = 0; i < bytes.length; i++) {
                 msg += String.fromCharCode(bytes[i]);
                 if (bytes[i] == 10) {
                     wsmsg += msg.replace('\r\n', '\n');
+                    // console.log(wsmsg);
                     var thismsg = wsmsg;
                     wsmsg = "";
                     msg = "";
                     Monitor_output_Update(thismsg);
                     process_socket_response(thismsg);
-                    if (!((thismsg.startsWith("<") || thismsg.startsWith("ok T:") || thismsg.startsWith("X:") || thismsg.startsWith("FR:") ||thismsg.startsWith("echo:E0 Flow"))))
-                        console.log(thismsg);
+                    if (!((thismsg.startsWith("<") || thismsg.startsWith("ok T:") || thismsg.startsWith("X:") || thismsg.startsWith("FR:") ||thismsg.startsWith("echo:E0 Flow")))) {
+                        // console.log(thismsg);
+                    }
                 }
             }
             wsmsg += msg;
         } else {
+            // Out of band messages
+            // console.log(e.data);
             msg += e.data;
             var tval = msg.split(":");
-            if (tval.length >= 2) {
+            // console.log(tval);
+            if (tval.length >= 1) {
                 if (tval[0] == 'CURRENT_ID') {
-                    page_id = tval[1];
-                    console.log("connection id = " + page_id);
+                    console.log("Got CURRENT_ID " + tval[1]);
+                    set_page_id(tval[1]);
                 }
-                if (enable_ping) {
-                    if (tval[0] == 'PING') {
-                        page_id = tval[1];
-                        // console.log("ping from id = " + page_id);
-                        last_ping = Date.now();
-                        if (interval_ping == -1) interval_ping = setInterval(function() {
-                            check_ping();
-                        }, 10 * 1000);
-                    }
+                if (tval[0] == 'PING') {
+                    // console.log("ping from id = " + tval[1]);
                 }
                 if (tval[0] == 'ACTIVE_ID') {
+                    console.log("ACTIVE_ID = " + tval[1]);
                     if (page_id != tval[1]) {
+                        console.log("Closing due to wrong ACTIVE_ID");
                         Disable_interface();
                     }
                 }
@@ -176,18 +180,22 @@ function startSocket() {
                     console.log("MSG: " + tval[2] + " code:" +  tval[1]);
                 }
             }
-
         }
         //console.log(msg);
 
+        // Any activity keeps the connection alive.  Pings are just forced messages
+        last_ws_activity = Date.now();
+        if (ws_activity_interval == -1) ws_activity_interval = setInterval(function() {
+             check_ping();
+         }, 10 * 1000);
     };
 }
 
 function check_ping() {
-    //if ((Date.now() - last_ping) > 20000){
-    //Disable_interface(true);
-    //console.log("No heart beat for more than 20s");
-    //}
+    if ((Date.now() - last_ws_activity) > 10000) {
+        Disable_interface(true);
+        console.log("No heart beat for more than 10 seconds");
+    }
 }
 
 function disable_items(item, state) {
@@ -199,14 +207,13 @@ function ontogglePing(forcevalue) {
     if (typeof forcevalue != 'undefined') enable_ping = forcevalue;
     else enable_ping = !enable_ping;
     if (enable_ping) {
-        if (interval_ping != -1) clearInterval(interval_ping);
-        last_ping = Date.now();
-        interval_ping = setInterval(function() {
+        if (ws_activity_interval != -1) clearInterval(ws_activity_interval);
+        last_ws_activity = Date.now();
+        ws_activity_interval = setInterval(function() {
             check_ping();
         }, 10 * 1000);
-        console.log("enable ping");
     } else {
-        if (interval_ping != -1) clearInterval(interval_ping);
+        if (ws_activity_interval != -1) clearInterval(ws_activity_interval);
         console.log("disable ping");
     }
 }
@@ -269,7 +276,7 @@ function Disable_interface(lostconnection) {
     //block all communication
     http_communication_locked = true;
     log_off = true;
-    if (interval_ping != -1) clearInterval(interval_ping);
+    if (ws_activity_interval != -1) clearInterval(ws_activity_interval);
     //clear all waiting commands
     clear_cmd_list();
     //no camera 

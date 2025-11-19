@@ -17,7 +17,7 @@ function restart_esp_success(response) {
     http_communication_locked = true;
     x.max = 10;
     interval = setInterval(function() {
-        last_ping = Date.now();
+        last_ws_activity = Date.now();
         i = i + 1;
         var x = id("prgrestart");
         x.value = i;

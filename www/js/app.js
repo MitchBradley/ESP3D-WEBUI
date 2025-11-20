@@ -161,8 +161,8 @@ function startSocket() {
                 if (tval[0] == 'ACTIVE_ID') {
                     console.log("ACTIVE_ID = " + tval[1]);
                     if (page_id != tval[1]) {
-                        console.log("Closing due to wrong ACTIVE_ID");
-                        Disable_interface();
+//                        console.log("Closing due to wrong ACTIVE_ID");
+//                        Disable_interface();
                     }
                 }
                 if (tval[0] == 'DHT') {

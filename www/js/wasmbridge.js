@@ -32,46 +32,19 @@
 
     // ── low level: postMessage <-> ShimChannel plumbing ────────────────
     // (same protocol as WebUI-mm's wasmBridgeTransport.ts / FigUI's
-    // shimTransport.ts -- buffers raw shim output into whole lines and
-    // reassembles [JSON:...]-encapsulated chunks, see FluidNC's
-    // JSONencoder, back into plain JSON before handing lines to listeners)
+    // shimTransport.ts. Line buffering and [JSON:...] reassembly -- see
+    // FluidNC's JSONencoder -- used to be reimplemented independently in
+    // each of the three bridges; demo/index.html now does that once,
+    // upstream of all of them, and just hands out whole, already-unwrapped
+    // lines via 'fluidnc-shim-line'.)
 
     var shimLineListeners = [];
     var pendingFsRequests = {};
     var nextFsRequestId = 1;
 
-    var JSON_CHUNK_RE = /^\[JSON:([\s\S]*)\]$/;
-    var shimBuffer = "";
-    var shimJsonAccum = null;
-
     function notifyShimLineListeners(line, isJson) {
         for (var i = 0; i < shimLineListeners.length; i++) {
             shimLineListeners[i](line, isJson);
-        }
-    }
-
-    function dispatchShimLine(line) {
-        var chunk = JSON_CHUNK_RE.exec(line);
-        if (chunk) {
-            shimJsonAccum = (shimJsonAccum === null ? "" : shimJsonAccum) + chunk[1];
-            return;
-        }
-        if (shimJsonAccum !== null) {
-            var reassembled = shimJsonAccum;
-            shimJsonAccum = null;
-            notifyShimLineListeners(reassembled, true);
-        }
-        notifyShimLineListeners(line, false);
-    }
-
-    function handleShimOutput(text) {
-        shimBuffer += text.replace(/\r/g, "");
-        var endLineIndex = shimBuffer.indexOf("\n");
-        while (endLineIndex >= 0) {
-            var line = shimBuffer.slice(0, endLineIndex);
-            shimBuffer = shimBuffer.slice(endLineIndex + 1);
-            if (line) dispatchShimLine(line);
-            endLineIndex = shimBuffer.indexOf("\n");
         }
     }
 
@@ -87,8 +60,8 @@
         // inside demo/index.html's own sandboxed iframe.
         var msg = event.data;
         if (!msg) return;
-        if (msg.type === "fluidnc-shim-output" && typeof msg.text === "string") {
-            handleShimOutput(msg.text);
+        if (msg.type === "fluidnc-shim-line" && typeof msg.line === "string") {
+            notifyShimLineListeners(msg.line, !!msg.isJson);
         } else if (msg.type === "fluidnc-fs-response" && typeof msg.id === "number") {
             var pending = pendingFsRequests[msg.id];
             if (!pending) return;

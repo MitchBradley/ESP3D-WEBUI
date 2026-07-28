@@ -41,6 +41,8 @@
     var shimLineListeners = [];
     var pendingFsRequests = {};
     var nextFsRequestId = 1;
+    var pendingShimCommands = {};
+    var nextShimCommandId = 1;
 
     function notifyShimLineListeners(line, isJson) {
         for (var i = 0; i < shimLineListeners.length; i++) {
@@ -62,6 +64,15 @@
         if (!msg) return;
         if (msg.type === "fluidnc-shim-line" && typeof msg.line === "string") {
             notifyShimLineListeners(msg.line, !!msg.isJson);
+        } else if (msg.type === "fluidnc-shim-command-response" && typeof msg.id === "number") {
+            var pendingCmd = pendingShimCommands[msg.id];
+            if (!pendingCmd) return;
+            delete pendingShimCommands[msg.id];
+            if (msg.ok) {
+                if (pendingCmd.successfn) pendingCmd.successfn(msg.response);
+            } else {
+                if (pendingCmd.errorfn) pendingCmd.errorfn(0, msg.ackLine);
+            }
         } else if (msg.type === "fluidnc-fs-response" && typeof msg.id === "number") {
             var pending = pendingFsRequests[msg.id];
             if (!pending) return;
@@ -128,29 +139,20 @@
         "axis:3",
     ].join("#");
 
-    // Collects a command's response until the terminating "ok"/"error:N"
-    // line (the grbl-protocol ACK/NACK, not part of the payload -- see
-    // Command.ts's appendLine() in WebUI-mm for the same idea), reassembling
-    // any [JSON:...] chunks along the way. Used for both firmwareCommand()
-    // (always synchronous) and SendPrinterCommand()'s ESP-branch (also
-    // synchronous over real HTTP, so also synchronous here).
+    // Sends a command and waits for its terminating "ok"/"error:N" line
+    // (the grbl-protocol ACK/NACK, not part of the payload -- see
+    // Command.ts's appendLine() in WebUI-mm for the same idea), including
+    // any [JSON:...] reassembly -- all done centrally by demo/index.html's
+    // 'fluidnc-shim-command' handler now, which also queues concurrent
+    // commands instead of letting their response lines cross-attribute (see
+    // its comment for why that matters over the bridge's one shared
+    // channel). Used for both firmwareCommand() (always synchronous) and
+    // SendPrinterCommand()'s ESP-branch (also synchronous over real HTTP,
+    // so also synchronous here).
     function sendShimCommand(cmd, successfn, errorfn) {
-        var responseLines = [];
-        var jsonText = "";
-        var unsubscribe = addShimLineListener(function (line, isJson) {
-            if (!isJson && (line.indexOf("ok") === 0 || line.indexOf("error") === 0)) {
-                unsubscribe();
-                if (line.indexOf("ok") === 0) {
-                    if (successfn) successfn(jsonText || responseLines.join("\n"));
-                } else {
-                    if (errorfn) errorfn(0, line);
-                }
-                return;
-            }
-            if (isJson) jsonText += line;
-            else responseLines.push(line);
-        });
-        sendToShim(cmd + "\n");
+        var id = nextShimCommandId++;
+        pendingShimCommands[id] = { successfn: successfn, errorfn: errorfn };
+        window.top.postMessage({ type: "fluidnc-shim-command", id: id, cmd: cmd }, "*");
     }
 
     window.firmwareCommand = function (cmd, successfn, errorfn) {
@@ -179,6 +181,13 @@
         // so all that's needed here is stashing the real callbacks the
         // same way stock SendPrinterCommand does, and getting the command
         // text into the shim.
+        //
+        // Sent raw, bypassing sendShimCommand()'s queue -- so a G-code line
+        // sent here while an ESP command is awaiting its own ok/error could
+        // in principle have that line's ack misattributed to this one, or
+        // vice versa (same known, narrow gap FigUI's WasmBridgeWebSocket.ts
+        // documents; not fixed here for the same reason: closing it would
+        // mean holding up G-code sends behind unrelated ESP commands).
         grbl_processfn = processfn;
         grbl_errorfn = errorfn;
         sendToShim(cmd + "\n");

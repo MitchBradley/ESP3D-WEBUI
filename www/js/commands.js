@@ -93,20 +93,18 @@ function Monitor_output_Update(message) {
 }
 
 function SendCustomCommand() {
-    var cmd = id("custom_cmd_txt").value;
-    var url = "/command?commandText=";
-    cmd = cmd.trim();
-    if (cmd.trim().length == 0) return;
+    var cmd = id("custom_cmd_txt").value.trim();
+    if (cmd.length == 0) return;
     CustomCommand_history.push(cmd);
     CustomCommand_history.slice(-40);
     CustomCommand_history_index = CustomCommand_history.length;
     id("custom_cmd_txt").value = "";
+    // Unlike SendPrinterCommand's other (mostly programmatic) callers, the
+    // terminal must always show what was typed -- so echo it here, unprefixed,
+    // rather than via SendPrinterCommand's own "[#]"-marked echo, which
+    // Monitor_output_Update filters out unless verbose mode is on.
     Monitor_output_Update(cmd + "\n");
-    cmd = encodeURI(cmd);
-    //because # is not encoded
-    cmd = cmd.replaceAll("#", "%23");
-    cmd = cmd.replaceAll("+", "%2B");
-    SendGetHttp(url + cmd, SendCustomCommandSuccess, SendCustomCommandFailed);
+    SendPrinterCommand(cmd, false, SendCustomCommandSuccess, SendPrinterCommandFailed);
 }
 
 function CustomCommand_OnKeyUp(event) {
@@ -137,11 +135,3 @@ function SendCustomCommandSuccess(response) {
     }
 }
 
-function SendCustomCommandFailed(error_code, response) {
-    if (error_code == 0) {
-        Monitor_output_Update(translate_text_item("Connection error") + "\n");
-    } else {
-         Monitor_output_Update(translate_text_item("Error : ") + error_code + " :" + decode_entitie(response) + "\n");
-    }
-    console.log("cmd Error " + error_code + " :" + decode_entitie(response));
-}

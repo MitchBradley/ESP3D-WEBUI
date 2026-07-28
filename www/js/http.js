@@ -137,6 +137,18 @@ function SendGetHttp(url, result_fn, error_fn, id, max_id) {
     process_cmd();
 }
 
+// Encapsulates the "/command?plain=" transport used for [ESPxxx] firmware
+// inquiries (e.g. "[ESP800]") and setting-value writes (e.g. a built
+// "P=name T=type V=value"-style cmd) -- both are the same wire mechanism,
+// just distinguished by successfn/errorfn. Response parsing stays with each
+// caller's own successfn; this is transport only, so it's the one seam to
+// change if this ever needs to talk through something other than a plain
+// HTTP GET (see FluidNC/wasm's WebUI-mm/FigUI bridges for the same pattern).
+function firmwareCommand(cmd, successfn, errorfn) {
+    var url = "/command?plain=" + encodeURIComponent(cmd);
+    SendGetHttp(url, successfn, errorfn);
+}
+
 function ProcessGetHttp(url, resultfn, errorfn) {
     if (http_communication_locked) {
         errorfn(503, translate_text_item("Communication locked!"));

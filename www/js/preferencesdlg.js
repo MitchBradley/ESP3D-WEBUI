@@ -96,13 +96,7 @@ function getpreferenceslist() {
     var url = preferences_file_name;
     preferenceslist = [];
     traceBootPrefs("request", url);
-    //removeIf(production)
-    var response = defaultpreferenceslist;
-    traceBootPrefs("dev_stub", "using defaultpreferenceslist for " + url);
-    processPreferencesGetSuccess(response);
-    return;
-    //endRemoveIf(production)
-    SendGetHttp(url, processPreferencesGetSuccess, processPreferencesGetFailed);
+    fileRead(FILE_VOLUME_FLASH, url, processPreferencesGetSuccess, processPreferencesGetFailed);
 }
 
 function prefs_toggledisplay(id_source, forcevalue) {
@@ -151,7 +145,7 @@ function processFallbackPreferencesGetFailed(errorcode, response) {
 
 function getFallbackPreferences() {
     var url = fallback_preferences_file_name;
-    SendGetHttp(url, processFallbackPreferencesGetSuccess, processFallbackPreferencesGetFailed);
+    fileRead(FILE_VOLUME_FLASH, url, processFallbackPreferencesGetSuccess, processFallbackPreferencesGetFailed);
 }
 
 function processPreferencesGetSuccess(response) {

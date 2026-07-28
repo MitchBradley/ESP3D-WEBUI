@@ -30,10 +30,10 @@ function SPIFFSnavbar() {
     var tlist = SPIFFS_currentpath.split("/");
     var path = "/";
     var nb = 1;
-    content += "<td class='tooltip'><span class='tooltip-text'>Go to root directory</span><button class='btn btn-primary'  onclick=\"SPIFFS_currentpath='/'; SPIFFSSendCommand('list','all');\">/</button></td>";
+    content += "<td class='tooltip'><span class='tooltip-text'>Go to root directory</span><button class='btn btn-primary'  onclick=\"SPIFFS_currentpath='/'; SPIFFSRefreshList();\">/</button></td>";
     while (nb < (tlist.length - 1)) {
         path += tlist[nb] + "/";
-        content += "<td><button class='btn btn-link' onclick=\"SPIFFS_currentpath='" + path + "'; SPIFFSSendCommand('list','all');\">" + tlist[nb] + "</button></td><td>/</td>";
+        content += "<td><button class='btn btn-link' onclick=\"SPIFFS_currentpath='" + path + "'; SPIFFSRefreshList();\">" + tlist[nb] + "</button></td><td>/</td>";
         nb++;
     }
     content += "</tr></table>";
@@ -42,7 +42,7 @@ function SPIFFSnavbar() {
 
 function SPIFFSselect_dir(directoryname) {
     SPIFFS_currentpath += directoryname + "/";
-    SPIFFSSendCommand('list', 'all');
+    SPIFFSRefreshList();
 }
 
 function SPIFFS_Createdir() {
@@ -50,7 +50,10 @@ function SPIFFS_Createdir() {
 }
 
 function processSPIFFS_Createdir(answer) {
-    if (answer.length > 0) SPIFFSSendCommand("createdir", answer.trim());
+    if (answer.length > 0) {
+        id('SPIFFS_loader').style.visibility = "visible";
+        fileCreateDir(FILE_VOLUME_FLASH, SPIFFS_currentpath, answer.trim(), SPIFFSsuccess, SPIFFSfailed);
+    }
 }
 
 function SPIFFSDownload(url) {
@@ -64,7 +67,10 @@ function SPIFFSDownload(url) {
 }
 
 function processSPIFFSDelete(answer) {
-    if (answer == "yes") SPIFFSSendCommand("delete", SPIFFS_currentfile);
+    if (answer == "yes") {
+        id('SPIFFS_loader').style.visibility = "visible";
+        fileDelete(FILE_VOLUME_FLASH, SPIFFS_currentpath, SPIFFS_currentfile, SPIFFSsuccess, SPIFFSfailed);
+    }
     SPIFFS_currentfile = "";
 }
 
@@ -79,7 +85,10 @@ function SPIFFSDeleteDir(filename) {
 }
 
 function processSPIFFSDeleteDir(answer) {
-    if (answer == "yes") SPIFFSSendCommand("deletedir", SPIFFS_currentfile);
+    if (answer == "yes") {
+        id('SPIFFS_loader').style.visibility = "visible";
+        fileDeleteDir(FILE_VOLUME_FLASH, SPIFFS_currentpath, SPIFFS_currentfile, SPIFFSsuccess, SPIFFSfailed);
+    }
     SPIFFS_currentfile = "";
 }
 
@@ -93,25 +102,16 @@ function processSPIFFSRename(new_file_name) {
     if (new_file_name == null || new_file_name == "") {
         return;
     }
-    var url = "/files?action=rename" + "&path=" + encodeURIComponent(SPIFFS_currentpath);
-    url += "&filename=" + encodeURIComponent(old_file_name);
-    url += "&newname=" + encodeURIComponent(new_file_name);
-    SendGetHttp(url, SPIFFSsuccess, SPIFFSfailed);
+    id('SPIFFS_loader').style.visibility = "visible";
+    fileRename(FILE_VOLUME_FLASH, SPIFFS_currentpath, old_file_name, new_file_name, SPIFFSsuccess, SPIFFSfailed);
 }
 
-function SPIFFSSendCommand(action, filename) {
-    //removeIf(production)
-    var response = "{\"files\":[{\"name\":\"config.html.gz\",\"size\":\"4.76 KB\"},{\"name\":\"index.html.gz\",\"size\":\"21.44 KB\"},{\"name\":\"favicon.ico\",\"size\":\"1.12 KB\"},{\"name\":\"config.htm\",\"size\":\"19.65 KB\"},{\"name\":\"config2.htm\",\"size\":\"19.98 KB\"},{\"name\":\"Testname\",\"size\":\"-1\"},{\"name\":\"index2.html.gz\",\"size\":\"28.89 KB\"}],\"path\":\"/\",\"status\":\"Ok\",\"total\":\"2.81 MB\",\"used\":\"118.88 KB\",\"occupation\":\"4\"}";
-    SPIFFSsuccess(response);
-    return;
-    //endRemoveIf(production)
-    var url = "/files?action=" + action;
-    url += "&filename=" + encodeURI(filename);
-    url += "&path=" + encodeURI(SPIFFS_currentpath);
+// Used by SPIFFSnavbar()'s breadcrumb links, SPIFFSselect_dir(), and
+// refreshSPIFFS() -- anything that just wants the current directory's
+// listing, as opposed to a create/delete/rename mutation.
+function SPIFFSRefreshList() {
     id('SPIFFS_loader').style.visibility = "visible";
-    console.log(url);
-    SendGetHttp(url, SPIFFSsuccess, SPIFFSfailed);
-
+    fileList(FILE_VOLUME_FLASH, SPIFFS_currentpath, SPIFFSsuccess, SPIFFSfailed);
 }
 
 function SPIFFSsuccess(response) {
@@ -147,7 +147,7 @@ function SPIFFSdispatchfilestatus(jsonresponse) {
     if (SPIFFS_currentpath != "/") {
         var pos = SPIFFS_currentpath.lastIndexOf("/", SPIFFS_currentpath.length - 2)
         var previouspath = SPIFFS_currentpath.slice(0, pos + 1);
-        content += "<tr style='cursor:pointer;' onclick=\"SPIFFS_currentpath='" + previouspath + "'; SPIFFSSendCommand('list','all');\"><td >" + get_icon_svg("level-up") + "</td><td colspan='4'> Up..</td></tr>";
+        content += "<tr style='cursor:pointer;' onclick=\"SPIFFS_currentpath='" + previouspath + "'; SPIFFSRefreshList();\"><td >" + get_icon_svg("level-up") + "</td><td colspan='4'> Up..</td></tr>";
     }
     jsonresponse.files.sort(function(a, b) {
         return compareStrings(a.name, b.name);
@@ -164,7 +164,7 @@ function SPIFFSdispatchfilestatus(jsonresponse) {
             // content += "<td  width='100%'  style='vertical-align:middle'><a href=\"" + pathname + filename + "\" target=_blank download><button  class=\"btn btn-link no_overflow\">" + filename + "</button></a></td>"
             content += "<td  width='100%'  style='vertical-align:middle'>" + filename + "</td>"
             content += "<td nowrap  style='vertical-align:middle; text-align:right'>" + filesize + "</td>";
-            content += SPIFFSbutton(pathname + filename, "SPIFFSDownload", "btn-default", "download");
+            content += SPIFFSbutton(fileDownloadUrl(FILE_VOLUME_FLASH, pathname, filename), "SPIFFSDownload", "btn-default", "download");
             content += SPIFFSbutton(filename, "SPIFFSDelete", "btn-danger", "trash");
             content += SPIFFSbutton(filename, "SPIFFSRename", "btn-default", "wrench");
             content += "</tr>";
@@ -198,12 +198,7 @@ function refreshSPIFFS() {
     displayNone('SPIFFS_uploadbtn');
     displayNone('refreshSPIFFSbtn');
     displayNone("SPIFFS_select_files");
-    //removeIf(production)
-    var response = "{\"files\":[{\"name\":\"config.html.gz\",\"size\":\"4.76 KB\"},{\"name\":\"index.html.gz\",\"size\":\"21.44 KB\"},{\"name\":\"favicon.ico\",\"size\":\"1.12 KB\"},{\"name\":\"config.htm\",\"size\":\"19.65 KB\"},{\"name\":\"config2.htm\",\"size\":\"19.98 KB\"},{\"name\":\"Testname\",\"size\":\"-1\"},{\"name\":\"index2.html.gz\",\"size\":\"28.89 KB\"}],\"path\":\"/\",\"status\":\"Ok\",\"total\":\"2.81 MB\",\"used\":\"118.88 KB\",\"occupation\":\"4\"}";
-    SPIFFSsuccess(response);
-    return;
-    //endRemoveIf(production)
-    SPIFFSSendCommand('list', 'all');
+    SPIFFSRefreshList();
 }
 
 function checkSPIFFSfiles() {
@@ -240,16 +235,6 @@ function SPIFFS_UploadFile() {
         return;
     }
     var files = id('SPIFFS-select').files
-    var formData = new FormData();
-    var url = "/files";
-    formData.append('path', SPIFFS_currentpath);
-    for (var i = 0; i < files.length; i++) {
-        var file = files[i];
-        var arg = SPIFFS_currentpath + file.name + "S";
-        //append file size first to check updload is complete
-        formData.append(arg, file.size);
-        formData.append('myfile[]', file, SPIFFS_currentpath + file.name);
-    }
     displayNone('SPIFFS-select_form');
     displayNone('SPIFFS_uploadbtn');
     SPIFFS_upload_ongoing = true;
@@ -258,7 +243,7 @@ function SPIFFS_UploadFile() {
     if (files.length == 1) SPIFFS_currentfile = files[0].name;
     else SPIFFS_currentfile = "";
     id('uploadSPIFFSmsg').innerHTML = translate_text_item("Uploading ") + SPIFFS_currentfile;
-    SendFileHttp(url, formData, SPIFFSUploadProgressDisplay, SPIFFSUploadsuccess, SPIFFSUploadfailed)
+    fileUpload(FILE_VOLUME_FLASH, SPIFFS_currentpath, files, SPIFFSUploadProgressDisplay, SPIFFSUploadsuccess, SPIFFSUploadfailed);
 }
 
 function SPIFFSUploadsuccess(response) {

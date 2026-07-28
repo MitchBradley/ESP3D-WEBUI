@@ -33,28 +33,32 @@ function update_btn_status(forcevalue) {
     }
 }
 
+// [ESP420]json=yes wraps each stat as a plain {id,value} object (see
+// WebCommands.cpp's showSysStatsJSON()/JSONencoder::id_value_object())
+// instead of a "Label: value" text line -- no more hand-splitting on ":"
+// and " (" to tell a label from a value that might itself contain either.
 function statussuccess(response) {
     displayBlock('refreshstatusbtn');
     displayNone('status_loader');
     var modal = getactiveModal();
     if (modal == null) return;
     var text = modal.element.getElementsByClassName("modal-text")[0];
-    var tresponse = response.split("\n");
     statuscontent = "";
-    for (var i = 0; i < tresponse.length; i++) {
-        var data = tresponse[i].split(":");
-        if (data.length >= 2) {
-            statuscontent += "<label>" + translate_text_item(data[0]) + ": </label>&nbsp;<span class='text-info'><strong>";
-            var data2 = data[1].split(" (")
-            statuscontent += translate_text_item(data2[0].trim());
-            for (v = 1; v < data2.length; v++) {
-                statuscontent += " (" + data2[v];
-            }
-            for (v = 2; v < data.length; v++) {
-                statuscontent += ":" + data[v];
-            }
+    try {
+        var jsonResponse = JSON.parse(response);
+        if (jsonResponse.cmd != 420 || jsonResponse.status == "error" || typeof jsonResponse.data == 'undefined') {
+            statusfailed(0, response);
+            return;
+        }
+        for (var i = 0; i < jsonResponse.data.length; i++) {
+            statuscontent += "<label>" + translate_text_item(jsonResponse.data[i].id) + ": </label>&nbsp;<span class='text-info'><strong>";
+            statuscontent += translate_text_item(jsonResponse.data[i].value);
             statuscontent += "</strong></span><br>";
-        } //else statuscontent += tresponse[i] + "<br>";
+        }
+    } catch (e) {
+        console.error("Parsing error:", e);
+        statusfailed(0, response);
+        return;
     }
     statuscontent += "<label>" + translate_text_item("WebUI version") + ": </label>&nbsp;<span class='text-info'><strong>";
     statuscontent += web_ui_version
@@ -80,6 +84,5 @@ function refreshstatus() {
     var text = modal.element.getElementsByClassName("modal-text")[0];
     text.innerHTML = "";
     displayNone('status_msg');
-    var url = "/command?plain=" + encodeURIComponent("[ESP420]plain");;
-    SendGetHttp(url, statussuccess, statusfailed)
+    firmwareCommand("[ESP420]json=yes", statussuccess, statusfailed);
 }

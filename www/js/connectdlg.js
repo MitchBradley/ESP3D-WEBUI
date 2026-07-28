@@ -100,6 +100,5 @@ function retryconnect() {
     displayNone('connectbtn');
     displayNone('failed_connect_msg');
     displayBlock('connecting_msg');
-    var url = "/command?plain=" + encodeURIComponent("[ESP800]");;
-    SendGetHttp(url, connectsuccess, connectfailed)
+    firmwareCommand("[ESP800]", connectsuccess, connectfailed);
 }

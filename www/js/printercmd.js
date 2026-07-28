@@ -34,7 +34,10 @@ function SendPrinterCommand(cmd, echo_on, processfn, errorfn, id, max_id, extra_
         errorfn = noop;
     }
     cmd = encodeURI(cmd);
-    cmd = cmd.replace("#", "%23");
+    //because # and + are not encoded by encodeURI, but the server's query
+    //parser needs them escaped (# looks like a fragment marker, + means space)
+    cmd = cmd.replaceAll("#", "%23");
+    cmd = cmd.replaceAll("+", "%2B");
     if (extra_arg) {
         cmd += "&" + extra_arg;
     }

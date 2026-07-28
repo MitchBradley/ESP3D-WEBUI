@@ -25,14 +25,12 @@ const sendCommand = (cmd) => {
 }
 
 const files_downloadFile = (name) => {
-    fetch(encodeURIComponent('SD' + gCodeFilename))
-        .then(response => response.text())
-        .then(gcode => showGCode(gcode));
+    fileRead(FILE_VOLUME_SD, gCodeFilename, showGCode);
 };
 
 const tabletGetFileList = (path) => {
     gCodeFilename = '';
-    SendGetHttp('/upload?path=' + encodeURI(path), files_list_success);
+    fileList(FILE_VOLUME_SD, path, files_list_success);
 }
 
 const toggleDropdown = () => {

@@ -7,10 +7,6 @@ var setup_is_done = false;
 var do_not_build_settings = false;
 
 function refreshSettings(hide_setting_list) {
-    if (http_communication_locked) {
-        id('config_status').innerHTML = translate_text_item("Communication locked by another process, retry later.");
-        return;
-    }
     do_not_build_settings = typeof hide_setting_list == 'undefined' ?false : !hide_setting_list;
 
     displayBlock('settings_loader');
@@ -19,8 +15,10 @@ function refreshSettings(hide_setting_list) {
     displayNone('settings_refresh_btn');
 
     scl = [];
-    var url = "/command?plain=" + encodeURIComponent("[ESP400]");
-    SendGetHttp(url, getESPsettingsSuccess, getESPsettingsfailed)
+    // ProcessGetHttp already fires getESPsettingsfailed(503, "Communication
+    // locked!") when http_communication_locked is set -- no need to
+    // pre-check and short-circuit here too.
+    firmwareCommand("[ESP400]json=yes", getESPsettingsSuccess, getESPsettingsfailed);
 }
 
 function defval(i) {
@@ -218,19 +216,24 @@ function setting_check_value(value, i) {
     return valid;
 }
 
+// [ESP400]json=yes wraps the same per-entry shape (F/P/H/T/V/M/S/O, still
+// handled unchanged by create_setting_entry/is_setting_entry below) in
+// {cmd,status,data} instead of the legacy {EEPROM:[...]} -- matches
+// WebUI-mm/FigUI's ESP400Response convention (see WebUI-mm's
+// src/tabs/features/index.tsx).
 function process_settings_answer(response_text) {
     var result = true;
     try {
         var response = JSON.parse(response_text);
-        if (typeof response.EEPROM == 'undefined') {
+        if (response.cmd != 400 || response.status == "error" || typeof response.data == 'undefined') {
             result = false;
-            console.log('No EEPROM');
+            console.log('No data');
         } else {
-            //console.log("EEPROM has " + response.EEPROM.length + " entries");
-            if (response.EEPROM.length > 0) {
+            //console.log("data has " + response.data.length + " entries");
+            if (response.data.length > 0) {
                 var vi = 0;
-                for (var i = 0; i < response.EEPROM.length; i++) {
-                    vi = create_setting_entry(response.EEPROM[i], vi);
+                for (var i = 0; i < response.data.length; i++) {
+                    vi = create_setting_entry(response.data[i], vi);
 
                 }
                 if (vi > 0) {
@@ -378,7 +381,7 @@ function settingsetvalue(i, j) {
         alertdlg(translate_text_item("Out of range"), translate_text_item("Value must be ") + setting_error_msg + " !");
     } else {
         //value is ok save it
-        var cmd = scl[i].cmd + value;
+        var cmd = scl[i].cmd + value + " json=yes";
         setting_lasti = i;
         setting_lastj = j;
         scl[i].defaultvalue = value;
@@ -386,8 +389,7 @@ function settingsetvalue(i, j) {
         setIcon(i, j, "has-success ico_feedback");
         setIconHTML(i, j, get_icon_svg("ok"));
         setStatus(i, j, "has-feedback has-success");
-        var url = "/command?plain=" + encodeURIComponent(cmd);
-        SendGetHttp(url, setESPsettingsSuccess, setESPsettingsfailed);
+        firmwareCommand(cmd, setESPsettingsSuccess, setESPsettingsfailed);
     }
 }
 
@@ -436,8 +438,23 @@ function setsettingerror(i, j) {
     setStatus(i, j, "has-feedback has-error");
 }
 
+// [ESP401]...json=yes wraps the write's outcome in {cmd,status,data}
+// (data is the error message text on failure) instead of a bare "ok"/
+// "error:N" line -- see WebCommands.cpp's setWebSetting()/
+// send_json_command_response(). That means an HTTP-level success (a 200,
+// which is all firmwareCommand's resultfn/this function actually checked
+// before) no longer implies the write itself succeeded -- a rejected value
+// still comes back as a 200 with status:"error" in the body, so that has
+// to be checked here now.
 function setESPsettingsSuccess(response) {
-    //console.log(response);
+    try {
+        var jsonResponse = JSON.parse(response);
+        if (jsonResponse.cmd == 401 && jsonResponse.status == "error") {
+            setESPsettingsfailed(0, jsonResponse.data);
+        }
+    } catch (e) {
+        console.error("Parsing error:", e);
+    }
 }
 
 function setESPsettingsfailed(error_code, response) {

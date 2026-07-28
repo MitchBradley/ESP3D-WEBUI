@@ -8,64 +8,37 @@ function connectdlg(getFw) {
     if (get_FW) retryconnect();
 }
 
+// [ESP800]json=yes wraps the same fields the legacy "FW version:... #
+// FW target:... # ..." plain-text response carried in {cmd,status,data}
+// instead -- see WifiConfig.cpp's showFwInfoJSON()/FwInfo.cpp's wasm
+// equivalent. "primary sd"/"secondary sd" have no JSON counterpart, but
+// nothing downstream ever actually reads primary_sd/secondary_sd (dead
+// vars even in the plain-text version), so they're just dropped here
+// rather than force-mapped from something that doesn't exist.
 function getFWdata(response) {
-    var tlist = response.split("#");
-    //FW version:0.9.200 # FW target:smoothieware # FW HW:Direct SD # primary sd:/ext/ # secondary sd:/sd/ # authentication: yes
-    if (tlist.length < 3) {
+    var parsed;
+    try {
+        parsed = JSON.parse(response);
+    } catch (e) {
         return false;
     }
-    //FW version
-    var sublist = tlist[0].split(":");
-    if (sublist.length != 2) {
+    if (parsed.cmd != 800 || parsed.status == "error" || typeof parsed.data == 'undefined') {
         return false;
     }
-    fw_version = sublist[1].toLowerCase().trim();
-    //FW target
-    sublist = tlist[1].split(":");
-    if (sublist.length != 2) {
-        return false;
-    }
-    target_firmware = sublist[1].toLowerCase().trim();
-    //primary sd
-    sublist = tlist[3].split(":");
-    if (sublist.length != 2) {
-        return false;
-    }
-    primary_sd = sublist[1].toLowerCase().trim();
+    var data = parsed.data;
+    fw_version = (data.FWVersion || "").toLowerCase().trim();
+    target_firmware = (data.FWTarget || "").toLowerCase().trim();
 
-    //secondary sd
-    sublist = tlist[4].split(":");
-    if (sublist.length != 2) {
-        return false;
+    async_webcommunication = data.WebCommunication == "Asynchronous";
+    if (!async_webcommunication) {
+        websocket_port = data.WebSocketPort;
+        websocket_ip = data.WebSocketIP || document.location.hostname;
     }
-    secondary_sd = sublist[1].toLowerCase().trim();
+    esp_hostname = data.HostName || "";
+    if (typeof data.Axisletters == "string") {
+        grblaxis = data.Axisletters.length;
+    }
 
-    //async communications
-    if (tlist.length > 6) {
-        sublist = tlist[6].split(":");
-        if ((sublist[0].trim() == "webcommunication") && (sublist[1].trim() == "Async")) async_webcommunication = true;
-        else {
-            async_webcommunication = false;
-            websocket_port = sublist[2].trim();
-            if (sublist.length>3) {
-                websocket_ip = sublist[3].trim();
-            } else {
-                websocket_ip =  document.location.hostname;
-            }
-        }
-    }
-    if (tlist.length > 7) {
-        sublist = tlist[7].split(":");
-        if (sublist[0].trim() == "hostname") esp_hostname = sublist[1].trim();
-    }
-    
-    if (tlist.length > 8) {
-        sublist = tlist[8].split(":");
-        if (sublist[0].trim() == "axis") {
-            grblaxis = parseInt(sublist[1].trim());
-        }
-    }
-    
     if (async_webcommunication) {
         if (!!window.EventSource) {
             event_source = new EventSource('/events');
@@ -100,5 +73,5 @@ function retryconnect() {
     displayNone('connectbtn');
     displayNone('failed_connect_msg');
     displayBlock('connecting_msg');
-    firmwareCommand("[ESP800]", connectsuccess, connectfailed);
+    firmwareCommand("[ESP800]json=yes", connectsuccess, connectfailed);
 }

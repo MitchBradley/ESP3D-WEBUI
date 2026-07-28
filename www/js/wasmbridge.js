@@ -119,26 +119,6 @@
 
     // ── gateways 1+2: firmwareCommand() / SendPrinterCommand() ─────────
 
-    // Matches the real firmware's plain [ESP800] response shape exactly
-    // (see WifiConfig.cpp's showFwInfo()) -- that handler isn't compiled
-    // into the WASM build (WebUI/ is excluded -- see platformio.ini's
-    // [env:wasm] build_src_filter), and connectdlg.js's getFWdata() only
-    // needs the capability-discovery fields, not live device state.
-    // Field positions matter: getFWdata() indexes tlist[0]/[1]/[3]/[4]/
-    // [6]/[7]/[8] after splitting on "#", so the (unread) tlist[2] "FW HW"
-    // segment still has to be present to keep everything after it aligned.
-    var FAKE_ESP800_RESPONSE = [
-        "FW version:FluidNC v4.0.3 (wasm-demo)",
-        "FW target:grbl-embedded",
-        "FW HW:Direct SD",
-        "primary sd:/sd/",
-        "secondary sd:none",
-        "authentication:no",
-        "webcommunication:Sync:81:127.0.0.1",
-        "hostname:fluidnc-wasm-demo",
-        "axis:3",
-    ].join("#");
-
     // Sends a command and waits for its terminating "ok"/"error:N" line
     // (the grbl-protocol ACK/NACK, not part of the payload -- see
     // Command.ts's appendLine() in WebUI-mm for the same idea), including
@@ -156,10 +136,6 @@
     }
 
     window.firmwareCommand = function (cmd, successfn, errorfn) {
-        if (cmd === "[ESP800]") {
-            if (successfn) successfn(FAKE_ESP800_RESPONSE);
-            return;
-        }
         sendShimCommand(cmd, successfn, errorfn);
     };
 
@@ -182,12 +158,18 @@
         // same way stock SendPrinterCommand does, and getting the command
         // text into the shim.
         //
-        // Sent raw, bypassing sendShimCommand()'s queue -- so a G-code line
-        // sent here while an ESP command is awaiting its own ok/error could
-        // in principle have that line's ack misattributed to this one, or
-        // vice versa (same known, narrow gap FigUI's WasmBridgeWebSocket.ts
-        // documents; not fixed here for the same reason: closing it would
-        // mean holding up G-code sends behind unrelated ESP commands).
+        // sendToShim() posts straight to the shim -- this doesn't wait its
+        // turn behind an ESP command the way sendShimCommand() does, but
+        // that's fine: demo/index.html now serializes every send (raw or
+        // command) through one central queue on its end, so only one thing
+        // is ever unacknowledged on the shim at a time regardless of which
+        // path sent it. (An earlier version only queued command-vs-command
+        // sends and left raw sends like this one to jump the queue --
+        // that turned out to be observably wrong: ESP3D-WEBUI's own boot
+        // sequence sends a raw "$G" right as ws_source opens, which could
+        // land while [ESP800]/[ESP400] was still in flight and steal its
+        // ok/error line, breaking the FluidNC Settings page. See
+        // demo/index.html's deliverShimLine()/maybeStartNextShimSend().)
         grbl_processfn = processfn;
         grbl_errorfn = errorfn;
         sendToShim(cmd + "\n");

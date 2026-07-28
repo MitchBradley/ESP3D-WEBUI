@@ -151,16 +151,24 @@ function build_control_from_pos(pos, extra) {
     return build_control_from_index(get_index_from_eeprom_pos(pos), extra);
 }
 
+// "nvs"/"tree" are this dialog's own filter keys (also used to build the
+// "<filter>_setting_filter" radio id below) -- they predate FluidNC and
+// don't match its actual category strings, which come straight from
+// listSettingsJSON()'s j.setCategory("Flash/Settings")/("Running/Config")
+// (WebCommands.cpp). Map to those before comparing against scl[i].F.
+var SETTING_FILTER_CATEGORY = { nvs: "flash/settings", tree: "running/config" };
+
 function build_HTML_setting_list(filter) {
     //this to prevent concurent process to update after we clean content
     if (do_not_build_settings) return;
     var content = "";
     current_setting_filter = filter;
     id(current_setting_filter + "_setting_filter").checked = true;
+    var category = SETTING_FILTER_CATEGORY[filter] || filter;
 
     for (var i = 0; i < scl.length; i++) {
         fname = scl[i].F.trim().toLowerCase();
-        if (fname == 'network' || fname == filter || filter == "all" ) {
+        if (fname == 'network' || fname == category || filter == "all" ) {
             content += "<tr>";
             content += "<td style='vertical-align:middle'>";
             content += translate_text_item(scl[i].label, true);

@@ -77,9 +77,9 @@
 
     window.addEventListener("message", function (event) {
         // The demo page is the only legitimate sender. Checking event.source
-        // === window.parent would be the obvious authenticity check, but in
-        // practice event.source is unreliable here (observed mismatching
-        // window.parent even for messages genuinely posted by the parent,
+        // === window.parent/window.top would be the obvious authenticity
+        // check, but in practice event.source is unreliable here (observed
+        // mismatching both even for messages genuinely posted by the parent,
         // possibly related to how the wasm module's MAIN_THREAD_EM_ASM
         // proxying or the blob: iframe's realm interacts with postMessage's
         // source attribution) -- so this just checks the message shape
@@ -98,8 +98,14 @@
         }
     });
 
+    // window.top rather than window.parent: this demo only ever nests the
+    // WebUI one level deep, so the two should be identical, but in testing
+    // window.parent was observed to silently start pointing at something
+    // else part-way through a session (postMessage undefined on it, even
+    // though window.top kept working) -- root cause unconfirmed, but
+    // window.top has been reliable throughout, so it's the safer target.
     function sendToShim(text) {
-        window.parent.postMessage({ type: "fluidnc-shim-send", text: text }, "*");
+        window.top.postMessage({ type: "fluidnc-shim-send", text: text }, "*");
     }
 
     // isJson is true exactly when `line` is a fully reassembled [JSON:...]
@@ -123,7 +129,7 @@
             for (var key in params) {
                 if (Object.prototype.hasOwnProperty.call(params, key)) msg[key] = params[key];
             }
-            window.parent.postMessage(msg, "*");
+            window.top.postMessage(msg, "*");
         });
     }
 
@@ -431,4 +437,24 @@
     };
 
     window.WebSocket = WasmBridgeWebSocket;
+
+    // app.js's check_ping() (called every 10s once ws_source has received
+    // at least one message -- see startSocket()'s onmessage handler) is a
+    // transport-liveness heuristic: it exists to catch a real WebSocket
+    // silently dying (WiFi drop, NAT/router timeout swallowing the
+    // connection without a close frame) that a real hardware target's own
+    // 10s server-side PING (WebUI_Server::poll() -> WSChannels::sendPing(),
+    // not compiled into the wasm build -- see platformio.ini's -<WebUI>)
+    // exists to paper over between real user/report traffic. None of that
+    // applies to WasmBridgeWebSocket: it's just JS object references inside
+    // the same page, not a real network socket, so it cannot silently die
+    // the way check_ping() is watching for -- close() is always an explicit,
+    // synchronous call (see above), never a silent timeout. Rather than
+    // manufacture traffic to satisfy a page-level heuristic that doesn't
+    // apply here (e.g. periodic '?' status polls, which would show up as
+    // real, spurious activity at the FluidNC/GCode level), this replaces
+    // the heuristic itself with a no-op for exactly the transport that
+    // doesn't need it -- matching how a synthetic transport should behave:
+    // always live until it explicitly says otherwise.
+    window.check_ping = function () {};
 })();

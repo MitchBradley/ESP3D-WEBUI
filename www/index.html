@@ -14,9 +14,6 @@
       var web_ui_version = "replaceVERSION";
     </script>
     <script>
-      var direct_sd = false;
-    </script>
-    <script>
       var fw_version = "";
     </script>
     <script>
@@ -24,6 +21,36 @@
     </script>
     <script>
       var secondary_sd = "/sd/";
+    </script>
+    <script>
+      (function() {
+        function traceInline(stage, detail) {
+          try {
+            var img = new Image();
+            img.src = '/trace?msg=' + encodeURIComponent('[TRACE_INLINE] ' + stage + ' ' + detail);
+          } catch (exception) {
+          }
+        }
+
+        function navType() {
+          try {
+            var entries = performance.getEntriesByType('navigation');
+            if (entries && entries.length > 0 && entries[0].type) {
+              return entries[0].type;
+            }
+          } catch (exception) {
+          }
+          return 'unknown';
+        }
+
+        traceInline('head', 'nav=' + navType() + ' ready=' + document.readyState + ' href=' + window.location.href);
+        window.addEventListener('beforeunload', function() {
+          traceInline('beforeunload', 'ready=' + document.readyState);
+        });
+        window.addEventListener('pagehide', function(e) {
+          traceInline('pagehide', 'persisted=' + (e.persisted ? '1' : '0'));
+        });
+      })();
     </script>
     <!--removeIf(cleanheader)-->
     <link href="css/bootstrap.css" rel="stylesheet" />
@@ -62,9 +89,7 @@
     <!-- template -->
     <file-include w3-include-html="'sub/connectdlg.html'"></file-include>
     <file-include w3-include-html="'sub/alertdlg.html'"></file-include>
-    <file-include w3-include-html="'sub/passworddlg.html'"></file-include>
     <file-include w3-include-html="'sub/confirmdlg.html'"></file-include>
-    <file-include w3-include-html="'sub/logindlg.html'"></file-include>
     <file-include w3-include-html="'sub/inputdlg.html'"></file-include>
     <file-include w3-include-html="'sub/creditsdlg.html'"></file-include>
     <file-include w3-include-html="'sub/scanwifidlg.html'"></file-include>
@@ -88,8 +113,6 @@
     <script src="js/tabs.js"></script>
     <script src="js/alertdlg.js"></script>
     <script src="js/confirmdlg.js"></script>
-    <script src="js/passworddlg.js"></script>
-    <script src="js/logindlg.js"></script>
     <script src="js/inputdlg.js"></script>
     <script src="js/creditsdlg.js"></script>
     <script src="js/scanwifidlg.js"></script>

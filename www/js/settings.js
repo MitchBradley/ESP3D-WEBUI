@@ -68,22 +68,6 @@ function build_select_for_setting_list(i, j) {
     return html;
 }
 
-function update_UI_setting() {
-    for (var i = 0; i < scl.length; i++) {
-        switch (scl[i].pos) {
-            //EP_TARGET_FW		461 
-            case "850":
-                direct_sd = (defval(i) == 1) ? true : false;
-                update_UI_firmware_target();
-                init_files_panel(false);
-                break;
-            case "130":
-                //set title using hostname
-                Set_page_title(defval(i));
-                break;
-        }
-    }
-}
 //to generate setting editor in setting or setup
 function build_control_from_index(i, extra_set_function) {
     var content = "<table>";
@@ -251,7 +235,6 @@ function process_settings_answer(response_text) {
                 }
                 if (vi > 0) {
                     if (setup_is_done) build_HTML_setting_list(current_setting_filter);
-                    update_UI_setting();
                 } else result = false;
             } else result = false;
         }
@@ -455,7 +438,6 @@ function setsettingerror(i, j) {
 
 function setESPsettingsSuccess(response) {
     //console.log(response);
-    update_UI_setting();
 }
 
 function setESPsettingsfailed(error_code, response) {

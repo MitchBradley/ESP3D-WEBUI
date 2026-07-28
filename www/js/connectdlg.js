@@ -26,14 +26,6 @@ function getFWdata(response) {
         return false;
     }
     target_firmware = sublist[1].toLowerCase().trim();
-    //FW HW
-    sublist = tlist[2].split(":");
-    if (sublist.length != 2) {
-        return false;
-    }
-    var sddirect = sublist[1].toLowerCase().trim();
-    if (sddirect == "direct sd") direct_sd = true;
-    else direct_sd = false;
     //primary sd
     sublist = tlist[3].split(":");
     if (sublist.length != 2) {
@@ -48,13 +40,6 @@ function getFWdata(response) {
     }
     secondary_sd = sublist[1].toLowerCase().trim();
 
-    //authentication
-    sublist = tlist[5].split(":");
-    if (sublist.length != 2) {
-        return false;
-    }
-    if ((sublist[0].trim() == "authentication") && (sublist[1].trim() == "yes")) ESP3D_authentication = true;
-    else ESP3D_authentication = false;
     //async communications
     if (tlist.length > 6) {
         sublist = tlist[6].split(":");
@@ -97,14 +82,7 @@ function getFWdata(response) {
 function connectsuccess(response) {
     if (getFWdata(response)) {
         console.log("Fw identification:" + response);
-        if (ESP3D_authentication) {
-            closeModal("Connection successful");
-            displayInline('menu_authentication');
-            logindlg(initUI, true);
-        } else {
-            displayNone('menu_authentication');
-            initUI();
-        }
+        initUI();
     } else {
         console.log(response);
         connectfailed(406, "Wrong data");

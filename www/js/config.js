@@ -38,28 +38,12 @@ function config_display_override(display_it) {
 }
 
 function getprinterconfig(is_override) {
-    var cmd = commandtxt;
     if ((typeof is_override != 'undefined') && is_override) {
-        cmd = "M503";
         config_override_List = [];
         is_override_config = true;
     } else is_override_config = false;
-    var url = "/command?plain=" + encodeURIComponent(cmd);
+    var url = "/command?plain=" + encodeURIComponent(commandtxt);
     SendGetHttp(url);
-}
-
-function Apply_config_override() {
-    var url = "/command?plain=" + encodeURIComponent("M500");
-    SendGetHttp(url, getESPUpdateconfigSuccess);
-}
-
-function Delete_config_override() {
-    var url = "/command?plain=" + encodeURIComponent("M502");
-    SendGetHttp(url, getESPUpdateconfigSuccess);
-}
-
-function getESPUpdateconfigSuccess(response) {
-    refreshconfig(true);
 }
 
 function build_HTML_config_list() {

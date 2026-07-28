@@ -24,18 +24,6 @@ const sendCommand = (cmd) => {
     SendPrinterCommand(cmd, true, get_Position);
 }
 
-const getAxisValueSuccess = () => {}
-
-const getAxisValueFailure = () => {
-    displayer.disableBoundary()
-    // console.log("Failed to get axis data");
-}
-
-const askAxis = (name) => {
-    var url = "/command?plain=" + encodeURIComponent(name);
-    SendGetHttp(url, getAxisValueSuccess, getAxisValueFailure);
-}
-
 const files_downloadFile = (name) => {
     fetch(encodeURIComponent('SD' + gCodeFilename))
         .then(response => response.text())
@@ -197,6 +185,11 @@ let reportType = 'none';
 
 let interval_status = -1;
 
+function traceBootInterface(stage, detail) {
+    console.log("[TRACE_BOOT][interface] " + stage + " " + detail);
+    if (typeof sendTraceToServer === 'function') sendTraceToServer('[TRACE_BOOT][interface]', stage, detail);
+}
+
 const disablePolling = () => {
     setAutocheck(false);
     // setValue('statusInterval_check', 0);
@@ -211,6 +204,7 @@ const disablePolling = () => {
 
 const enablePolling = () => {
     const interval = parseFloat(getValue('statusInterval_check'));
+    traceBootInterface("enablePolling", "interval=" + interval + " current_timer=" + interval_status);
     if (!isNaN(interval) && interval == 0) {
         if (interval_status != -1) {
             clearInterval(interval_status);
@@ -242,6 +236,7 @@ const tryAutoReport = () => {
     }
     reportType == 'auto';
     const interval = id('autoReportInterval').value;
+    traceBootInterface("tryAutoReport", "interval=" + interval + " reportType=" + reportType);
     if (interval == 0) {
         enablePolling();
         return;
@@ -253,13 +248,15 @@ const tryAutoReport = () => {
                        () => {},
 
                        // Fall back to polling if the firmware does not support auto-reports
-                       () => {    
+                       () => {
+                           traceBootInterface("autoReportFallback", "interval=" + interval);
                            enablePolling();
                        },
 
                        99.1, 1);
 }
 const onAutoReportIntervalChange = () => {
+    traceBootInterface("onAutoReportIntervalChange", "auto=" + id('autoReportInterval').value + " status=" + getValue('statusInterval_check'));
     tryAutoReport();
 }
 
@@ -309,6 +306,7 @@ const onstatusIntervalChange = () => {
 //TODO handle authentication issues
 //errorfn cannot be NULL
 const get_status = () => {      
+    traceBootInterface("get_status", "sending realtime ? page_id=" + page_id);
     sendRealtimeCmd('\x3f'); // '?'
 }
 

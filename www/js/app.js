@@ -1,4 +1,3 @@
-var ESP3D_authentication = false;
 var convertDHT2Fahrenheit = false;
 var ws_source;
 var event_source;
@@ -33,6 +32,72 @@ var last_ws_activity = 0;
 var enable_ping = true;
 var esp_error_message ="";
 var esp_error_code = 0;
+const traceBootStorageKey = 'fluidnc_trace_boot_seq';
+let traceBootSeq = 0;
+
+function nextBootSequence() {
+    let prior = 0;
+    try {
+        prior = parseInt(sessionStorage.getItem(traceBootStorageKey) || '0', 10);
+        if (isNaN(prior)) {
+            prior = 0;
+        }
+        sessionStorage.setItem(traceBootStorageKey, String(prior + 1));
+    } catch (exception) {
+        prior = 0;
+    }
+    return prior + 1;
+}
+
+function getNavigationType() {
+    try {
+        const entries = performance.getEntriesByType('navigation');
+        if (entries && entries.length > 0 && entries[0].type) {
+            return entries[0].type;
+        }
+    } catch (exception) {
+    }
+    return 'unknown';
+}
+
+function sendTraceToServer(prefix, stage, detail) {
+    try {
+        var msg = prefix + " " + stage + " " + detail;
+        var currentPageId = (typeof page_id !== 'undefined' && page_id != null) ? page_id : '';
+        var url = '/trace?msg=' + encodeURIComponent(msg) + '&PAGEID=' + encodeURIComponent(currentPageId);
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(url, new Blob([], { type: 'text/plain' }));
+            return;
+        }
+        var tracer = new Image();
+        tracer.src = url;
+    } catch (exception) {
+    }
+}
+
+function traceLifecycle(stage, detail) {
+    var currentPageId = (typeof page_id !== 'undefined' && page_id != null) ? page_id : '';
+    traceBootApp(stage, 'boot=' + traceBootSeq + ' page_id=' + currentPageId + ' ' + detail);
+}
+
+traceBootSeq = nextBootSequence();
+traceLifecycle('script_load', 'nav=' + getNavigationType() + ' ready=' + document.readyState + ' href=' + window.location.href);
+
+window.addEventListener('pageshow', function(e) {
+    traceLifecycle('pageshow', 'persisted=' + (e.persisted ? '1' : '0') + ' nav=' + getNavigationType());
+});
+
+window.addEventListener('pagehide', function(e) {
+    traceLifecycle('pagehide', 'persisted=' + (e.persisted ? '1' : '0'));
+});
+
+window.addEventListener('beforeunload', function() {
+    traceLifecycle('beforeunload', 'ready=' + document.readyState);
+});
+
+document.addEventListener('visibilitychange', function() {
+    traceLifecycle('visibilitychange', 'state=' + document.visibilityState);
+});
 
 function set_page_id(id) {
     page_id = id;
@@ -81,6 +146,7 @@ function browser_is(bname) {
 }
 
 window.onload = function() {
+    traceLifecycle('window.onload', 'nav=' + getNavigationType());
     //to check if javascript is disabled like in anroid preview
     displayNone('loadingmsg');
     // console.log("Connect to board");
@@ -97,6 +163,11 @@ window.onload = function() {
 
 var wsmsg = "";
 
+function traceBootApp(stage, detail) {
+    console.log("[TRACE_BOOT][app] " + stage + " " + detail);
+    sendTraceToServer('[TRACE_BOOT][app]', stage, detail);
+}
+
 function startSocket() {
     try {
         if (async_webcommunication) {
@@ -111,9 +182,11 @@ function startSocket() {
     ws_source.binaryType = "arraybuffer";
     ws_source.onopen = function(e) {
         console.log("Connected");
+        traceBootApp("ws_open", document.location.host);
     };
     ws_source.onclose = function(e) {
         console.log(" Disconnected");
+        traceLifecycle('ws_close', 'code=' + e.code + ' reason=' + e.reason + ' clean=' + (e.wasClean ? '1' : '0') + ' log_off=' + (log_off ? '1' : '0'));
         //seems sometimes it disconnect so wait 3s and reconnect
         //if it is not a log off
         if (!log_off) setTimeout(startSocket, 3000);
@@ -138,6 +211,9 @@ function startSocket() {
                     msg = "";
                     Monitor_output_Update(thismsg);
                     process_socket_response(thismsg);
+                    if (thismsg.startsWith("[MSG:DBG:") || thismsg.startsWith("<")) {
+                        traceBootApp("ws_binary", thismsg.trim());
+                    }
                     if (!((thismsg.startsWith("<") || thismsg.startsWith("ok T:") || thismsg.startsWith("X:") || thismsg.startsWith("FR:") ||thismsg.startsWith("echo:E0 Flow")))) {
                         // console.log(thismsg);
                     }
@@ -153,6 +229,7 @@ function startSocket() {
             if (tval.length >= 1) {
                 if (tval[0] == 'CURRENT_ID') {
                     console.log("Got CURRENT_ID " + tval[1]);
+                    traceBootApp("CURRENT_ID", tval[1]);
                     set_page_id(tval[1]);
                 }
                 if (tval[0] == 'PING') {
@@ -160,6 +237,7 @@ function startSocket() {
                 }
                 if (tval[0] == 'ACTIVE_ID') {
                     console.log("ACTIVE_ID = " + tval[1]);
+                    traceBootApp("ACTIVE_ID", tval[1]);
                     if (page_id != tval[1]) {
 //                        console.log("Closing due to wrong ACTIVE_ID");
 //                        Disable_interface();
@@ -273,6 +351,7 @@ function display_boot_progress(step) {
 function Disable_interface(lostconnection) {
     var lostcon = false;
     if (typeof lostconnection != "undefined") lostcon = lostconnection;
+    traceLifecycle('Disable_interface', 'lost=' + (lostcon ? '1' : '0'));
     //block all communication
     http_communication_locked = true;
     log_off = true;
@@ -365,7 +444,7 @@ function update_UI_firmware_target() {
 
     if (typeof id('fwName') != "undefined") id('fwName').innerHTML = fwName;
     //SD image or not
-    if (direct_sd && typeof id('showSDused') != "undefined") id('showSDused').innerHTML = "<svg width='1.3em' height='1.2em' viewBox='0 0 1300 1200'><g transform='translate(50,1200) scale(1, -1)'><path  fill='#777777' d='M200 1100h700q124 0 212 -88t88 -212v-500q0 -124 -88 -212t-212 -88h-700q-124 0 -212 88t-88 212v500q0 124 88 212t212 88zM100 900v-700h900v700h-900zM500 700h-200v-100h200v-300h-300v100h200v100h-200v300h300v-100zM900 700v-300l-100 -100h-200v500h200z M700 700v-300h100v300h-100z' /></g></svg>";
+    if (typeof id('showSDused') != "undefined") id('showSDused').innerHTML = "<svg width='1.3em' height='1.2em' viewBox='0 0 1300 1200'><g transform='translate(50,1200) scale(1, -1)'><path  fill='#777777' d='M200 1100h700q124 0 212 -88t88 -212v-500q0 -124 -88 -212t-212 -88h-700q-124 0 -212 88t-88 212v500q0 124 88 212t212 88zM100 900v-700h900v700h-900zM500 700h-200v-100h200v-300h-300v100h200v100h-200v300h300v-100zM900 700v-300l-100 -100h-200v500h200z M700 700v-300h100v300h-100z' /></g></svg>";
     else id('showSDused').innerHTML = "";
     return fwName;
 }
@@ -377,10 +456,9 @@ function Set_page_title(page_title) {
 
 function initUI() {
     console.log("Init UI");
-    if (ESP3D_authentication) connectdlg(false);
     AddCmd(display_boot_progress);
     //initial check
-    if ((typeof target_firmware == "undefined") || (typeof web_ui_version == "undefined") || (typeof direct_sd == "undefined")) alert('Missing init data!');
+    if ((typeof target_firmware == "undefined") || (typeof web_ui_version == "undefined")) alert('Missing init data!');
     //check FW
     update_UI_firmware_target();
     //set title using hostname
@@ -418,6 +496,7 @@ function initUI_3() {
     init_controls_panel();
     init_grbl_panel();
     console.log("Get preferences");
+    traceBootApp("initUI_3", "calling getpreferenceslist");
     getpreferenceslist();
     initUI_4();
 }

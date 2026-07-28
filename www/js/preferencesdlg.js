@@ -40,6 +40,11 @@ var defaultpreferenceslist = "[{\
 var fallback_preferences_file_name = '/preferences.json';
 var preferences_file_name = '/preferences2.json';
 
+function traceBootPrefs(stage, detail) {
+    console.log("[TRACE_BOOT][prefs] " + stage + " " + detail);
+    if (typeof sendTraceToServer === 'function') sendTraceToServer('[TRACE_BOOT][prefs]', stage, detail);
+}
+
 function initpreferences() {
     defaultpreferenceslist = "[{\
                                             \"language\":\"en\",\
@@ -90,8 +95,10 @@ function initpreferences() {
 function getpreferenceslist() {
     var url = preferences_file_name;
     preferenceslist = [];
+    traceBootPrefs("request", url);
     //removeIf(production)
     var response = defaultpreferenceslist;
+    traceBootPrefs("dev_stub", "using defaultpreferenceslist for " + url);
     processPreferencesGetSuccess(response);
     return;
     //endRemoveIf(production)
@@ -131,12 +138,14 @@ function prefs_toggledisplay(id_source, forcevalue) {
 }
 
 function processFallbackPreferencesGetSuccess(response) {
+    traceBootPrefs("fallback_success", "len=" + response.length + " html=" + (response.indexOf("<HTML>") != -1));
     if (response.indexOf("<HTML>") == -1) Preferences_build_list(response);
     else Preferences_build_list(defaultpreferenceslist);
 }
 
 function processFallbackPreferencesGetFailed(errorcode, response) {
     // console.log("Error " + errorcode + " : " + response);
+    traceBootPrefs("fallback_failed", "code=" + errorcode + " len=" + response.length);
     Preferences_build_list(defaultpreferenceslist);
 }
 
@@ -146,12 +155,14 @@ function getFallbackPreferences() {
 }
 
 function processPreferencesGetSuccess(response) {
+    traceBootPrefs("success", "len=" + response.length + " html=" + (response.indexOf("<HTML>") != -1));
     if (response.indexOf("<HTML>") == -1) Preferences_build_list(response);
     else Preferences_build_list(defaultpreferenceslist);
 }
 
 function processPreferencesGetFailed(errorcode, response) {
     // console.log("Error " + errorcode + " : " + response);
+    traceBootPrefs("failed", "code=" + errorcode + " len=" + response.length);
     console.log("Trying fallback to preferences.json");
     getFallbackPreferences();
 }
@@ -175,6 +186,7 @@ function Preferences_build_list(response_text) {
         console.error("Parsing error:", e);
         preferenceslist = JSON.parse(defaultpreferenceslist);
     }
+    traceBootPrefs("apply", "source_len=" + response_text.length + " auto=" + preferenceslist[0].autoreport_interval + " status=" + preferenceslist[0].interval_status);
     applypreferenceslist();
 }
 
@@ -296,6 +308,8 @@ function applypreferenceslist() {
         id('statusInterval_check').value = statusIntervalValue;
     }
     if (autoReportChanged || statusIntervalChanged) {
+        traceBootPrefs("interval_change",
+                       "auto=" + autoReportValue + " auto_changed=" + autoReportChanged + " status=" + statusIntervalValue + " status_changed=" + statusIntervalChanged);
         onAutoReportIntervalChange();
     }
 

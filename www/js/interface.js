@@ -24,6 +24,18 @@ const sendCommand = (cmd) => {
     SendPrinterCommand(cmd, true, get_Position);
 }
 
+// webui3's askAxis() posts a message to the parent frame and picks up the
+// reply asynchronously via processMessage/axisResult (see
+// tablet/src/webui3/interfase.js). We have no parent frame to talk to --
+// tablet/src/tablet/*.js runs directly in this page -- so we just send the
+// query like any other $ command; the echoed "$name=value" response comes
+// back through the normal socket monitor pipeline (app.js's
+// grblHandleMessage -> tabletShowMessage -> getDollarResult, see
+// tablet/src/tablet/tablet.js).
+const askAxis = (name) => {
+    sendCommand(name);
+}
+
 const files_downloadFile = (name) => {
     fileRead(FILE_VOLUME_SD, gCodeFilename, showGCode);
 };

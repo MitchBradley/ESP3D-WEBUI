@@ -6,24 +6,12 @@ var page_id = ""
 
 var max_cmd = 20;
 
-function traceBootHttp(stage, detail) {
-    console.log("[TRACE_BOOT][http] " + stage + " " + detail);
-    if (typeof sendTraceToServer === 'function') sendTraceToServer('[TRACE_BOOT][http]', stage, detail);
-}
-
-function shouldTraceHttp(url) {
-    return url.indexOf('/preferences') !== -1 || url.indexOf('/command') === 0;
-}
-
 function clear_cmd_list() {
     http_cmd_list = [];
     processing_cmd = false;
 }
 
 function http_resultfn(response_text) {
-    if (http_cmd_list.length > 0 && shouldTraceHttp(http_cmd_list[0].cmd)) {
-        traceBootHttp("result", http_cmd_list[0].cmd + " len=" + response_text.length + " remaining=" + (http_cmd_list.length - 1));
-    }
     if ((http_cmd_list.length > 0) && (typeof http_cmd_list[0].resultfn != 'undefined')) {
         var fn = http_cmd_list[0].resultfn;
         fn(response_text);
@@ -34,9 +22,6 @@ function http_resultfn(response_text) {
 }
 
 function http_errorfn(errorcode, response_text) {
-    if (http_cmd_list.length > 0 && shouldTraceHttp(http_cmd_list[0].cmd)) {
-        traceBootHttp("error", http_cmd_list[0].cmd + " code=" + errorcode + " remaining=" + (http_cmd_list.length - 1));
-    }
     var fn = http_cmd_list[0].errorfn;
     if ((http_cmd_list.length > 0) && (typeof http_cmd_list[0].errorfn != 'undefined') && http_cmd_list[0].errorfn != null) {
         http_cmd_list[0].errorfn(errorcode, response_text);
@@ -51,9 +36,6 @@ function process_cmd() {
         //console.log("Processing 1/" + http_cmd_list.length);
         //console.log("Processing " + http_cmd_list[0].cmd);
         if (http_cmd_list[0].type == "GET") {
-            if (shouldTraceHttp(http_cmd_list[0].cmd)) {
-                traceBootHttp("dispatch", http_cmd_list[0].cmd + " qlen=" + http_cmd_list.length);
-            }
             processing_cmd = true;
             ProcessGetHttp(http_cmd_list[0].cmd, http_resultfn, http_errorfn);
         } else if (http_cmd_list[0].type == "POST") {
@@ -130,9 +112,6 @@ function SendGetHttp(url, result_fn, error_fn, id, max_id) {
         id: cmd_id
     };
     http_cmd_list.push(cmd);
-    if (shouldTraceHttp(url)) {
-        traceBootHttp("enqueue", url + " qlen=" + http_cmd_list.length + " page_id=" + page_id);
-    }
     //console.log("Now " + http_cmd_list.length);
     process_cmd();
 }
@@ -170,9 +149,6 @@ function ProcessGetHttp(url, resultfn, errorfn) {
     if (url.startsWith("/command")) {
         url += (url.indexOf("?") == -1) ? "?" : "&";
         url += "PAGEID=" + page_id;
-    }
-    if (shouldTraceHttp(url)) {
-        traceBootHttp("xhr", url);
     }
     //console.log("GET:" + url);
     xmlhttp.open("GET", url, true);

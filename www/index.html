@@ -22,36 +22,6 @@
     <script>
       var secondary_sd = "/sd/";
     </script>
-    <script>
-      (function() {
-        function traceInline(stage, detail) {
-          try {
-            var img = new Image();
-            img.src = '/trace?msg=' + encodeURIComponent('[TRACE_INLINE] ' + stage + ' ' + detail);
-          } catch (exception) {
-          }
-        }
-
-        function navType() {
-          try {
-            var entries = performance.getEntriesByType('navigation');
-            if (entries && entries.length > 0 && entries[0].type) {
-              return entries[0].type;
-            }
-          } catch (exception) {
-          }
-          return 'unknown';
-        }
-
-        traceInline('head', 'nav=' + navType() + ' ready=' + document.readyState + ' href=' + window.location.href);
-        window.addEventListener('beforeunload', function() {
-          traceInline('beforeunload', 'ready=' + document.readyState);
-        });
-        window.addEventListener('pagehide', function(e) {
-          traceInline('pagehide', 'persisted=' + (e.persisted ? '1' : '0'));
-        });
-      })();
-    </script>
     <!--removeIf(cleanheader)-->
     <link href="css/bootstrap.css" rel="stylesheet" />
     <link href="css/menu.css" rel="stylesheet" />

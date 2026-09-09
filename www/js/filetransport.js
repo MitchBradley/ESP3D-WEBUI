@@ -69,12 +69,15 @@ function fileDownloadUrl(volume, path, name) {
     return encodeURIComponent((prefix + path + name).replace("//", "/"));
 }
 
-// Fetches a file's raw content directly (not through /upload or /files),
-// same serving convention as fileDownloadUrl() above -- for small
-// app-config files consumed programmatically rather than downloaded, e.g.
-// preferencesdlg.js's preferences.json/preferences2.json.
+// Fetches a file's raw content directly (not through /upload or /files).
+// path should be the file's fully-qualified name, e.g. "/sd/foo.gcode" or
+// "/littlefs/foo.gcode" -- FluidPath::canonPath() on the server resolves
+// the volume from that leading path component itself, so no client-side
+// volume-to-prefix guessing is needed (or done) here; volume is unused,
+// kept only so existing callers don't all need updating. A bare,
+// unqualified path (no recognized volume component) resolves against
+// LocalFS server-side, same as an unqualified path passed directly to
+// canonPath() anywhere else in FluidNC.
 function fileRead(volume, path, successfn, errorfn) {
-    var prefix = volume === FILE_VOLUME_SD ? "SD" : "";
-    var url = (prefix + path).replace("//", "/");
-    SendGetHttp(url, successfn, errorfn);
+    SendGetHttp(path, successfn, errorfn);
 }

@@ -37,7 +37,11 @@ const askAxis = (name) => {
 }
 
 const files_downloadFile = (name) => {
-    fileRead(FILE_VOLUME_SD, gCodeFilename, showGCode);
+    // fileRead() now expects a fully-qualified path (see filetransport.js) --
+    // gCodeFilename is SD-relative (job files are always run via $sd/run=),
+    // so qualify it explicitly rather than relying on fileRead()'s volume
+    // argument to do that.
+    fileRead(FILE_VOLUME_SD, '/sd' + gCodeFilename, showGCode);
 };
 
 const tabletGetFileList = (path) => {

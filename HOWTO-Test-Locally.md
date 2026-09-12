@@ -64,6 +64,19 @@ but the file will probably be too large to fit on an ESP32's local flash filesys
 A single alternative language might fit.  For example, you could add German support
 with `gulp package --lang de`
 
+### Ubuntu
+
+Some versions of Ubuntu (e.g. 22.04) bundle a very old version of Node.js. If you get an error like:
+
+```bash
+$ gulp package --lang en                                        
+SyntaxError: Unexpected token '?'                                                                                                                        
+    at Loader.moduleStrategy (internal/modules/esm/translators.js:133:18)
+```
+
+then you should install a newer version of Node. You can do this by following
+[Node's instructions for using NVM](https://nodejs.org/en/download/package-manager).
+
 ## Testing
 
 You can upload index.html.gz to a FluidNC ESP32 machine and run it

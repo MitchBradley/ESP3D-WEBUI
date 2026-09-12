@@ -83,7 +83,7 @@ var polishtrans = {
 "Network":"Sie&cacute;",
 "No SD card detected":"Nie wykryto karty SD",
 "No":"Nie",
-"Occupation:":"Stan:",
+"Usage:":"Stan:",
 "Ok":"Ok",
 "Options":"Opcje",
 "Out of range":"Poza zakresem",

@@ -87,7 +87,7 @@ var zh_CN_trans = {
 "Network":"&#32593;&#32476;",
 "No SD card detected":"&#26410;&#26816;&#27979;&#21040;SD&#21345;",
 "No":"No",
-"Occupation:":"Occupation:",
+"Usage:":"Occupation:",
 "Ok":"Ok",
 "Options":"&#36873;&#39033;",
 "Out of range":"&#36229;&#20986;&#33539;&#22260;",

@@ -83,7 +83,7 @@ var spanishtrans = {
 "Network":"Red",
 "No SD card detected":"No se detecta la tarjeta SD",
 "No":"No",
-"Occupation:":"Ocupaci&oacute;n",
+"Usage:":"Ocupaci&oacute;n",
 "Ok":"Ok",
 "Options":"Opciones",
 "Out of range":"No es v&aacute;lido",

@@ -83,7 +83,7 @@ var russiantrans = {
 "Network": "Сеть",
 "No SD card detected": "SD-карта не обнаружена",
 "No": "Нет",
-"Occupation:": "Захоплення:",
+"Usage:": "Захоплення:",
 "Ok": "ОК",
 "Options": "Опции",
 "Out of range": "Вне диапазона",

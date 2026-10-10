@@ -4,6 +4,20 @@ var processing_cmd = false;
 var xmlhttpupload;
 var page_id = ""
 
+// When served from FluidNC's /ui/<name>/, the WebSocket, commands and
+// preferences are addressed beneath that directory.  The browser then sends
+// this WebUI's own session cookie with them, so its channels are separate
+// from other WebUIs open in the same browser, and its preferences file is
+// separate from theirs.  Served from /, this is "/" and nothing changes.
+var ui_base = (function() {
+    var m = document.location.pathname.match(/^\/ui\/[^\/]+\//);
+    return m ? m[0] : "/";
+})();
+
+function in_ui_dir() {
+    return ui_base != "/";
+}
+
 var max_cmd = 20;
 
 function clear_cmd_list() {
@@ -46,6 +60,9 @@ function process_cmd() {
                 //console.log("Uploading");
                 ProcessFileHttp(http_cmd_list[0].cmd, http_cmd_list[0].data, http_cmd_list[0].progressfn, http_resultfn, http_errorfn);
             }
+        } else if (http_cmd_list[0].type == "PUT") {
+            processing_cmd = true;
+            ProcessFileHttp(http_cmd_list[0].cmd, http_cmd_list[0].data, http_cmd_list[0].progressfn, http_resultfn, http_errorfn, "PUT");
         } else if (http_cmd_list[0].type == "CMD") {
             processing_cmd = true;
             var fn = http_cmd_list[0].cmd;
@@ -124,7 +141,7 @@ function SendGetHttp(url, result_fn, error_fn, id, max_id) {
 // change if this ever needs to talk through something other than a plain
 // HTTP GET (see FluidNC/wasm's WebUI-mm/FigUI bridges for the same pattern).
 function firmwareCommand(cmd, successfn, errorfn) {
-    var url = "/command?plain=" + encodeURIComponent(cmd);
+    var url = ui_base + "command?plain=" + encodeURIComponent(cmd);
     SendGetHttp(url, successfn, errorfn);
 }
 
@@ -146,7 +163,7 @@ function ProcessGetHttp(url, resultfn, errorfn) {
         }
     }
 
-    if (url.startsWith("/command")) {
+    if (url.startsWith(ui_base + "command")) {
         url += (url.indexOf("?") == -1) ? "?" : "&";
         url += "PAGEID=" + page_id;
     }
@@ -228,13 +245,34 @@ function SendFileHttp(url, postdata, progress_fn, result_fn, error_fn) {
     process_cmd();
 }
 
+// Writes data (e.g. a Blob) to url with a PUT, as FluidNC accepts beneath
+// /ui/<name>/.  The Blob's type becomes the Content-Type.
+function SendPutHttp(url, data, progress_fn, result_fn, error_fn) {
+    if ((http_cmd_list.length > max_cmd) && (max_cmd != -1)) {
+        error_fn(999, translate_text_item("Server not responding"));
+        return;
+    }
+    var cmd = {
+        cmd: url,
+        type: "PUT",
+        data: data,
+        progressfn: progress_fn,
+        resultfn: result_fn,
+        errorfn: error_fn,
+        id: 0
+    };
+    http_cmd_list.push(cmd);
+    process_cmd();
+}
+
 function CancelCurrentUpload() {
     xmlhttpupload.abort();
     //http_communication_locked = false;
     console.log("Cancel Upload");
 }
 
-function ProcessFileHttp(url, postdata, progressfn, resultfn, errorfn) {
+function ProcessFileHttp(url, postdata, progressfn, resultfn, errorfn, method) {
+    method = method || "POST";
     if (http_communication_locked) {
         errorfn(503, translate_text_item("Communication locked!"));
         return;
@@ -244,7 +282,8 @@ function ProcessFileHttp(url, postdata, progressfn, resultfn, errorfn) {
     xmlhttpupload.onreadystatechange = function() {
         if (xmlhttpupload.readyState == 4) {
             http_communication_locked = false;
-            if (xmlhttpupload.status == 200) {
+            // A PUT answers 201 Created or 204 No Content
+            if (xmlhttpupload.status == 200 || (method == "PUT" && xmlhttpupload.status >= 200 && xmlhttpupload.status < 300)) {
                 if (typeof resultfn != 'undefined' && resultfn != null) resultfn(xmlhttpupload.responseText);
             } else {
                 if (typeof errorfn != 'undefined' && errorfn != null) errorfn(xmlhttpupload.status, xmlhttpupload.responseText);
@@ -252,7 +291,7 @@ function ProcessFileHttp(url, postdata, progressfn, resultfn, errorfn) {
         }
     }
     //console.log(url);
-    xmlhttpupload.open("POST", url, true);
+    xmlhttpupload.open(method, url, true);
     if (typeof progressfn != 'undefined' && progressfn != null) xmlhttpupload.upload.addEventListener("progress", progressfn, false);
     xmlhttpupload.send(postdata);
 }

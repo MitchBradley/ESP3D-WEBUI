@@ -98,7 +98,11 @@ var wsmsg = "";
 
 function startSocket() {
     try {
-        if (async_webcommunication) {
+        if (in_ui_dir()) {
+            // The WebSocket shares the page's URL, as it does at /, and its
+            // host, so the browser sends this WebUI's session cookie with it
+            ws_source = new WebSocket('ws://' + document.location.host + ui_base, ['arduino']);
+        } else if (async_webcommunication) {
             ws_source = new WebSocket('ws://' + document.location.host + '/ws', ['arduino']);
         } else {
             console.log("Socket is " + websocket_ip + ":" + websocket_port);

@@ -81,3 +81,13 @@ function fileDownloadUrl(volume, path, name) {
 function fileRead(volume, path, successfn, errorfn) {
     SendGetHttp(path, successfn, errorfn);
 }
+
+// Read and write a state file in this WebUI's own directory when it is
+// served from /ui/<name>/ (see ui_base).  name has no leading slash.
+function uiFileRead(name, successfn, errorfn) {
+    SendGetHttp(ui_base + name, successfn, errorfn);
+}
+
+function uiFileWrite(name, blob, progressfn, successfn, errorfn) {
+    SendPutHttp(ui_base + name, blob, progressfn, successfn, errorfn);
+}

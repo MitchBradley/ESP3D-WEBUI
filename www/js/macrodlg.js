@@ -250,6 +250,10 @@ function SaveNewMacroList() {
     var blob = new Blob([JSON.stringify(macrodlg_macrolist, null, " ")], {
         type: 'application/json'
     });
+    if (in_ui_dir()) {
+        uiFileWrite("macrocfg.json", blob, macrodlgUploadProgressDisplay, macroUploadsuccess, macroUploadfailed);
+        return;
+    }
     var file;
     if (browser_is("IE") || browser_is("Edge")) {
         file = blob;

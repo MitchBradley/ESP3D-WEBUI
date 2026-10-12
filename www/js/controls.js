@@ -27,6 +27,15 @@ function showAxiscontrols() {
 
 function loadmacrolist() {
     control_macrolist = [];
+    if (in_ui_dir()) {
+        // Until macros are first saved here, use the shared ones
+        uiFileRead("macrocfg.json", processMacroGetSuccess, loadSharedMacroList);
+    } else {
+        loadSharedMacroList();
+    }
+}
+
+function loadSharedMacroList() {
     var url = "/macrocfg.json";
     fileRead(FILE_VOLUME_FLASH, url, processMacroGetSuccess, processMacroGetFailed);
 }

@@ -39,6 +39,8 @@ var defaultpreferenceslist = "[{\
                                             }]";
 var fallback_preferences_file_name = '/preferences.json';
 var preferences_file_name = '/preferences2.json';
+// In this WebUI's own directory when served from /ui/<name>/
+var ui_preferences_file_name = 'preferences2.json';
 
 function initpreferences() {
     defaultpreferenceslist = "[{\
@@ -88,8 +90,17 @@ function initpreferences() {
 }
 
 function getpreferenceslist() {
-    var url = preferences_file_name;
     preferenceslist = [];
+    if (in_ui_dir()) {
+        // Until preferences are first saved here, use the shared ones
+        uiFileRead(ui_preferences_file_name, processPreferencesGetSuccess, getSharedPreferences);
+    } else {
+        getSharedPreferences();
+    }
+}
+
+function getSharedPreferences() {
+    var url = preferences_file_name;
     fileRead(FILE_VOLUME_FLASH, url, processPreferencesGetSuccess, processPreferencesGetFailed);
 }
 
@@ -669,6 +680,11 @@ function SavePreferences(current_preferences) {
     var blob = new Blob([JSON.stringify(preferenceslist, null, " ")], {
         type: 'application/json'
     });
+    if (in_ui_dir()) {
+        if ((typeof(current_preferences) != 'undefined') && current_preferences) uiFileWrite(ui_preferences_file_name, blob);
+        else uiFileWrite(ui_preferences_file_name, blob, preferencesdlgUploadProgressDisplay, preferencesUploadsuccess, preferencesUploadfailed);
+        return;
+    }
     var file;
     if (browser_is("IE") || browser_is("Edge")) {
         file = blob;

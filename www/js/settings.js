@@ -389,7 +389,9 @@ function settingsetvalue(i, j) {
         alertdlg(translate_text_item("Out of range"), translate_text_item("Value must be ") + setting_error_msg + " !");
     } else {
         //value is ok save it
-        var cmd = scl[i].cmd + value + " json=yes";
+        //escape backslashes and spaces so the firmware's V= parser keeps them
+        var escaped = String(value).replace(/\\/g, "\\\\").replace(/ /g, "\\ ");
+        var cmd = scl[i].cmd + escaped + " json=yes";
         setting_lasti = i;
         setting_lastj = j;
         scl[i].defaultvalue = value;
